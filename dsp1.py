@@ -10,6 +10,7 @@ from scipy.signal import butter, lfilter
 import os
 from PIL import Image, ImageTk
 import io
+import re
 
 class DSPMasterProgram:
     def __init__(self, root):
@@ -26,6 +27,7 @@ class DSPMasterProgram:
         self.create_image_processing_tab()
         self.create_audio_processing_tab()
         self.create_z_transform_tab()
+        self.create_inverse_z_transform_tab()
         self.create_fft_tab()
         self.create_windowing_tab()
         self.create_sampling_tab()
@@ -44,12 +46,19 @@ class DSPMasterProgram:
         ttk.Button(control_frame, text="Binary (B&W)", command=self.apply_binary).pack(side='left', padx=5)
         ttk.Button(control_frame, text="Median Blur", command=self.apply_median_blur).pack(side='left', padx=5)
         ttk.Button(control_frame, text="Laplacian", command=self.apply_laplacian).pack(side='left', padx=5)
+        tk.Button(control_frame, text="🗑️ Delete", command=self.delete_image, fg="red", bg="#f0f0f0", relief='raised', cursor="hand2").pack(side='left', padx=5)
         
         self.image_label = ttk.Label(frame, text="Load an image to begin", background="white")
         self.image_label.pack(fill='both', expand=True, pady=10)
         
         self.original_image = None
         self.current_image = None
+    
+    def delete_image(self):
+        self.original_image = None
+        self.current_image = None
+        self.image_label.config(image='', text="Load an image to begin")
+        messagebox.showinfo("Success", "Image data cleared!")
         
     def load_image(self):
         filepath = filedialog.askopenfilename(
@@ -120,6 +129,8 @@ class DSPMasterProgram:
         ttk.Button(filter_frame, text="Bandpass (1-3kHz)", command=lambda: self.apply_audio_filter('bandpass')).pack(side='left', padx=3)
         ttk.Button(filter_frame, text="Bandstop (1-3kHz)", command=lambda: self.apply_audio_filter('bandstop')).pack(side='left', padx=3)
         
+        tk.Button(control_frame, text="🗑️ Delete", command=self.delete_audio, fg="red", bg="#f0f0f0", relief='raised', cursor="hand2").pack(side='left', padx=5)
+        
         # Matplotlib canvas for audio visualization
         self.audio_fig = Figure(figsize=(10, 4), dpi=80)
         self.audio_canvas = FigureCanvasTkAgg(self.audio_fig, master=frame)
@@ -128,6 +139,14 @@ class DSPMasterProgram:
         self.audio_data = None
         self.audio_fs = None
         self.filtered_audio = None
+    
+    def delete_audio(self):
+        self.audio_data = None
+        self.audio_fs = None
+        self.filtered_audio = None
+        self.audio_fig.clear()
+        self.audio_canvas.draw()
+        messagebox.showinfo("Success", "Audio data cleared!")
         
     def load_audio(self):
         filepath = filedialog.askopenfilename(
@@ -198,30 +217,43 @@ class DSPMasterProgram:
         info_frame = ttk.LabelFrame(frame, text="Instructions", padding="10")
         info_frame.pack(fill='x', pady=10)
         
-        info_text = """Enter the sequence values as space-separated numbers.
-Example 1: 5 3 -3 0 4 -2  (represents x(n) from n=-2 to n=3)
-Example 2: 1 2 0 3 4 5    (represents x(n) from n=0 onwards, starting at index 0)
+        info_text = """Enter the sequence values as space-separated numbers and specify the starting index n.
+Example 1: Sequence = "5 3 -3 0 4 -2", n = -2  (x(-2)=5, x(-1)=3, x(0)=-3, x(1)=0, x(2)=4, x(3)=-2)
+Example 2: Sequence = "1 2 0 3 4 5", n = 0     (x(0)=1, x(1)=2, x(2)=0, x(3)=3, x(4)=4, x(5)=5)
 
-The Z-transform formula: X(z) = Σ x(n)·z^(-n)"""
+The Z-transform formula: X(z) = Σ x(n)·z^(-n)
+For DISCRETE TIME signals where n represents the sample number."""
         ttk.Label(info_frame, text=info_text, justify='left').pack(fill='x')
         
         # Input frame
         input_frame = ttk.LabelFrame(frame, text="Z-Transform Calculator", padding="10")
         input_frame.pack(fill='x', pady=10)
         
-        ttk.Label(input_frame, text="Enter sequence (space-separated numbers):").pack(side='left', padx=5)
-        self.z_input = ttk.Entry(input_frame, width=40)
+        ttk.Label(input_frame, text="Sequence (space-separated):").pack(side='left', padx=5)
+        self.z_input = ttk.Entry(input_frame, width=30)
         self.z_input.pack(side='left', padx=5)
-        self.z_input.bind('<Return>', lambda e: self.calculate_z_transform())
+        
+        ttk.Label(input_frame, text="Starting Index n:").pack(side='left', padx=5)
+        self.z_start_index = ttk.Entry(input_frame, width=8)
+        self.z_start_index.insert(0, "0")
+        self.z_start_index.pack(side='left', padx=5)
         
         ttk.Button(input_frame, text="Calculate Z-Transform", command=self.calculate_z_transform).pack(side='left', padx=5)
+        tk.Button(input_frame, text="🗑️ Delete", command=self.delete_z_transform, fg="red", bg="#f0f0f0", relief='raised', cursor="hand2").pack(side='left', padx=5)
         
         # Output frame
         output_frame = ttk.LabelFrame(frame, text="Result", padding="10")
         output_frame.pack(fill='both', expand=True, pady=10)
         
-        self.z_output = tk.Text(output_frame, height=15, width=80, font=("Courier", 12))
+        self.z_output = tk.Text(output_frame, height=15, width=80, font=("Courier", 10))
         self.z_output.pack(fill='both', expand=True)
+    
+    def delete_z_transform(self):
+        self.z_input.delete(0, tk.END)
+        self.z_start_index.delete(0, tk.END)
+        self.z_start_index.insert(0, "0")
+        self.z_output.delete(1.0, tk.END)
+        messagebox.showinfo("Success", "Z-Transform data cleared!")
     
     def calculate_z_transform(self):
         try:
@@ -231,12 +263,7 @@ The Z-transform formula: X(z) = Σ x(n)·z^(-n)"""
                 return
             
             sequence = [int(x) for x in input_str.split()]
-            
-            # Calculate starting index (n_start)
-            # If we have 6 elements, and typical examples show x(-2) to x(3):
-            # We'll use the length to determine: for 6 elements, start at -(6//2) = -3
-            # But more accurately, we start from n=0 by default
-            n_start = 0
+            n_start = int(self.z_start_index.get())
             
             result, detailed = self.z_transform_detailed(sequence, n_start)
             
@@ -263,27 +290,19 @@ The Z-transform formula: X(z) = Σ x(n)·z^(-n)"""
             if val == 0:
                 continue
             
-            # Create z power term
-            if n == 0:
-                z_power = "z^0"
-                z_power_simplified = "1"
-            elif n > 0:
-                z_power = f"z^{n}"
-                z_power_simplified = f"z^{n}"
-            else:  # n < 0
-                z_power = f"z^({n})"
-                z_power_simplified = f"z^{n}"
+            # Create z power term: z^(-n)
+            z_power = f"z^({-n})"
             
             # Create the term
             if val == 1:
-                term = z_power_simplified
+                term = z_power
             elif val == -1:
-                term = f"-{z_power_simplified}"
+                term = f"-{z_power}"
             else:
-                term = f"{val}{z_power_simplified}"
+                term = f"{val}{z_power}"
             
             terms.append(term)
-            equation_steps.append(f"  + x({n})·{z_power} = {val}·{z_power_simplified}")
+            equation_steps.append(f"  + x({n})·z^(-{n}) = {val}·z^({-n})")
         
         # Join with proper formatting
         if not terms:
@@ -294,7 +313,135 @@ The Z-transform formula: X(z) = Σ x(n)·z^(-n)"""
         
         return result, detailed
     
-    # ==================== TAB 4: FFT ANALYSIS ====================
+    # ==================== TAB 4: INVERSE Z-TRANSFORM ====================
+    def create_inverse_z_transform_tab(self):
+        frame = ttk.Frame(self.notebook, padding="10")
+        self.notebook.add(frame, text="Inverse Z-Transform (Lab 4B)")
+        
+        # Info frame
+        info_frame = ttk.LabelFrame(frame, text="Instructions", padding="10")
+        info_frame.pack(fill='x', pady=10)
+        
+        info_text = """Enter the Z-transform expression to find the inverse (recover x[n]).
+Example: X(z) = 4z^4 - z^3 - 3z + 4z^1 + 3z^2
+or: 4z^-1 + 0.5z^-2 + 2z^-3 - 3z^-4
+
+Specify the starting index n to determine where the sequence begins.
+Example: If X(z) = 4z^-(-2) + ... with n = -2, then x[-2] is the first value.
+
+The Inverse Z-Transform recovers the discrete-time signal x[n] from X(z)."""
+        ttk.Label(info_frame, text=info_text, justify='left').pack(fill='x')
+        
+        # Input frame
+        input_frame = ttk.LabelFrame(frame, text="Inverse Z-Transform Calculator", padding="10")
+        input_frame.pack(fill='x', pady=10)
+        
+        ttk.Label(input_frame, text="X(z) =").pack(side='left', padx=5)
+        self.inverse_z_input = ttk.Entry(input_frame, width=50)
+        self.inverse_z_input.pack(side='left', padx=5)
+        
+        ttk.Label(input_frame, text="Starting n:").pack(side='left', padx=5)
+        self.inverse_z_start = ttk.Entry(input_frame, width=8)
+        self.inverse_z_start.insert(0, "-2")
+        self.inverse_z_start.pack(side='left', padx=5)
+        
+        ttk.Button(input_frame, text="Calculate Inverse", command=self.calculate_inverse_z_transform).pack(side='left', padx=5)
+        tk.Button(input_frame, text="🗑️ Delete", command=self.delete_inverse_z_transform, fg="red", bg="#f0f0f0", relief='raised', cursor="hand2").pack(side='left', padx=5)
+        
+        # Output frame
+        output_frame = ttk.LabelFrame(frame, text="Result", padding="10")
+        output_frame.pack(fill='both', expand=True, pady=10)
+        
+        self.inverse_z_output = tk.Text(output_frame, height=15, width=80, font=("Courier", 10))
+        self.inverse_z_output.pack(fill='both', expand=True)
+    
+    def delete_inverse_z_transform(self):
+        self.inverse_z_input.delete(0, tk.END)
+        self.inverse_z_start.delete(0, tk.END)
+        self.inverse_z_start.insert(0, "-2")
+        self.inverse_z_output.delete(1.0, tk.END)
+        messagebox.showinfo("Success", "Inverse Z-Transform data cleared!")
+    
+    def calculate_inverse_z_transform(self):
+        try:
+            input_str = self.inverse_z_input.get().strip()
+            if not input_str:
+                messagebox.showwarning("Warning", "Please enter a Z-transform expression")
+                return
+            
+            n_start = int(self.inverse_z_start.get())
+            
+            # Parse the Z-transform expression
+            coefficients = self.parse_z_transform(input_str)
+            
+            if not coefficients:
+                messagebox.showerror("Error", "Could not parse the expression. Check the format.")
+                return
+            
+            self.inverse_z_output.delete(1.0, tk.END)
+            self.inverse_z_output.insert(tk.END, f"Input X(z): {input_str}\n\n")
+            self.inverse_z_output.insert(tk.END, f"Parsing Z-domain Expression:\n")
+            self.inverse_z_output.insert(tk.END, f"Extracted coefficients: {coefficients}\n\n")
+            
+            # Extract sorted indices and values
+            sorted_indices = sorted(coefficients.keys())
+            x_values = [coefficients[i] for i in sorted_indices]
+            
+            self.inverse_z_output.insert(tk.END, f"Sequence x[n] = {x_values} starting at n = {n_start}\n\n")
+            self.inverse_z_output.insert(tk.END, f"Detailed Values:\n")
+            
+            for idx, power in enumerate(sorted_indices):
+                n = n_start + idx
+                self.inverse_z_output.insert(tk.END, f"  x[{n}] = {coefficients[power]}\n")
+            
+            self.inverse_z_output.insert(tk.END, f"\nInverse Answer:\n")
+            self.inverse_z_output.insert(tk.END, f"x[n] = {{{', '.join(map(str, x_values))}}}\n")
+            
+        except ValueError as e:
+            messagebox.showerror("Error", f"Invalid starting index. {str(e)}")
+    
+    def parse_z_transform(self, expr):
+        """
+        Parse Z-transform expression like: 4z^4 - z^3 - 3z + 4z^1 + 3z^2
+        Returns: {power: coefficient} dictionary
+        """
+        coefficients = {}
+        
+        # Replace - with +- to split properly
+        expr = expr.replace(' - ', ' + -').replace('-', '+-')
+        terms = expr.split('+')
+        terms = [t.strip() for t in terms if t.strip()]
+        
+        for term in terms:
+            # Match patterns: 4z^4, -z^3, 3z, z^(-2), etc.
+            match = re.match(r'([+-]?\d*)\s*z\^\((-?\d+)\)', term)
+            if match:
+                coeff = match.group(1)
+                power = int(match.group(2))
+                if coeff in ['', '+']:
+                    coeff = 1
+                elif coeff == '-':
+                    coeff = -1
+                else:
+                    coeff = int(coeff)
+                coefficients[power] = coeff
+            else:
+                # Try simpler format: 4z^4
+                match = re.match(r'([+-]?\d*)\s*z\^(-?\d+)', term)
+                if match:
+                    coeff = match.group(1)
+                    power = int(match.group(2))
+                    if coeff in ['', '+']:
+                        coeff = 1
+                    elif coeff == '-':
+                        coeff = -1
+                    else:
+                        coeff = int(coeff)
+                    coefficients[power] = coeff
+        
+        return coefficients
+    
+    # ==================== TAB 5: FFT ANALYSIS ====================
     def create_fft_tab(self):
         frame = ttk.Frame(self.notebook, padding="10")
         self.notebook.add(frame, text="FFT Analysis (Lab 6)")
@@ -305,11 +452,17 @@ The Z-transform formula: X(z) = Σ x(n)·z^(-n)"""
         
         ttk.Label(control_frame, text="Signal Example:").pack(side='left', padx=5)
         ttk.Button(control_frame, text="Generate Signal", command=self.generate_fft_signal).pack(side='left', padx=5)
+        tk.Button(control_frame, text="🗑️ Delete", command=self.delete_fft, fg="red", bg="#f0f0f0", relief='raised', cursor="hand2").pack(side='left', padx=5)
         
         # Matplotlib canvas
         self.fft_fig = Figure(figsize=(10, 5), dpi=80)
         self.fft_canvas = FigureCanvasTkAgg(self.fft_fig, master=frame)
         self.fft_canvas.get_tk_widget().pack(fill='both', expand=True)
+    
+    def delete_fft(self):
+        self.fft_fig.clear()
+        self.fft_canvas.draw()
+        messagebox.showinfo("Success", "FFT plot cleared!")
     
     def generate_fft_signal(self):
         x = np.array([-1, 5, 7, 2])
@@ -345,7 +498,7 @@ The Z-transform formula: X(z) = Σ x(n)·z^(-n)"""
         print(f"DFT: {X}")
         print(f"Magnitude: {magnitude}")
     
-    # ==================== TAB 5: WINDOWING ====================
+    # ==================== TAB 6: WINDOWING ====================
     def create_windowing_tab(self):
         frame = ttk.Frame(self.notebook, padding="10")
         self.notebook.add(frame, text="Windowing (Lab 7)")
@@ -381,6 +534,8 @@ The Z-transform formula: X(z) = Σ x(n)·z^(-n)"""
         ttk.Button(left_frame, text="Hann", command=lambda: self.apply_window('Hann')).pack(fill='x', pady=3)
         ttk.Button(left_frame, text="Hamming", command=lambda: self.apply_window('Hamming')).pack(fill='x', pady=3)
         
+        tk.Button(left_frame, text="🗑️ Delete", command=self.delete_windowing, fg="red", bg="#f0f0f0", relief='raised', cursor="hand2").pack(fill='x', pady=10)
+        
         # Right side - Display
         right_frame = ttk.Frame(frame)
         right_frame.pack(side='right', fill='both', expand=True, padx=10, pady=10)
@@ -392,6 +547,18 @@ The Z-transform formula: X(z) = Σ x(n)·z^(-n)"""
         
         # Initial plot
         self.apply_window('Rectangular')
+    
+    def delete_windowing(self):
+        self.window_N.delete(0, tk.END)
+        self.window_N.insert(0, "64")
+        self.window_f1.delete(0, tk.END)
+        self.window_f1.insert(0, "5")
+        self.window_f2.delete(0, tk.END)
+        self.window_f2.insert(0, "15")
+        self.window_A2.delete(0, tk.END)
+        self.window_A2.insert(0, "0.5")
+        self.apply_window('Rectangular')
+        messagebox.showinfo("Success", "Windowing parameters reset!")
     
     def apply_window(self, window_name):
         try:
@@ -456,7 +623,7 @@ The Z-transform formula: X(z) = Σ x(n)·z^(-n)"""
         self.window_fig.tight_layout()
         self.window_canvas.draw()
     
-    # ==================== TAB 6: SAMPLING ====================
+    # ==================== TAB 7: SAMPLING ====================
     def create_sampling_tab(self):
         frame = ttk.Frame(self.notebook, padding="10")
         self.notebook.add(frame, text="Sampling Theory (Labs 1,5)")
@@ -470,11 +637,17 @@ The Z-transform formula: X(z) = Σ x(n)·z^(-n)"""
         ttk.Button(control_frame, text="Sampling 2kHz @ 8kHz", command=self.plot_third_task).pack(side='left', padx=5)
         ttk.Button(control_frame, text="Sampling 6kHz @ 8kHz (Aliasing)", command=self.plot_fourth_task).pack(side='left', padx=5)
         ttk.Button(control_frame, text="Multiple Frequencies", command=self.plot_fifth_task).pack(side='left', padx=5)
+        tk.Button(control_frame, text="🗑️ Delete", command=self.delete_sampling, fg="red", bg="#f0f0f0", relief='raised', cursor="hand2").pack(side='left', padx=5)
         
         # Matplotlib canvas
         self.sampling_fig = Figure(figsize=(10, 5), dpi=80)
         self.sampling_canvas = FigureCanvasTkAgg(self.sampling_fig, master=frame)
         self.sampling_canvas.get_tk_widget().pack(fill='both', expand=True)
+    
+    def delete_sampling(self):
+        self.sampling_fig.clear()
+        self.sampling_canvas.draw()
+        messagebox.showinfo("Success", "Sampling plot cleared!")
     
     def plot_first_task(self):
         t_min, t_max, num_t = -1, 1, 1000
