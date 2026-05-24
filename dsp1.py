@@ -6,7 +6,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 import cv2
 import soundfile as sf
-from scipy.signal import butter, lfilter
+from scipy.signal import butter, lfilter, cheby1, bessel
 import os
 from PIL import Image, ImageTk
 import io
@@ -540,42 +540,113 @@ class DSPMasterProgram:
                                    f"Laplacian (ksize={k}, scale={scale}, delta={delta})")
         except (ValueError, TypeError) as e:
             messagebox.showerror("Type Error", f"Laplacian parameter error:\n{e}")
-        self.current_image = lap8
-        self.display_processed(cv2.cvtColor(lap8, cv2.COLOR_GRAY2BGR), "Laplacian")
-    
-    # ==================== TAB 2: AUDIO PROCESSING ====================
+
+    # ==================== TAB 2: AUDIO PROCESSING (ENHANCED) ====================
     def create_audio_processing_tab(self):
         frame = ttk.Frame(self.notebook, padding="10")
         self.notebook.add(frame, text="Audio Processing (Lab 3)")
         
+        # ── Internal state (MUST come first) ──────────────────────────────
+        self.audio_data = None
+        self.audio_fs = None
+        self.filtered_audio = None
+        
+        # ── Filter parameters (tk variables) ─────────────────────────────
+        self.audio_cutoff = tk.DoubleVar(value=1000.0)
+        self.audio_cutoff_low = tk.DoubleVar(value=1000.0)
+        self.audio_cutoff_high = tk.DoubleVar(value=3000.0)
+        self.audio_filter_order = tk.IntVar(value=5)
+        self.audio_design_method = tk.StringVar(value="Butterworth")
+        
+        # ── Top: File Loading ────────────────────────────────────────────
         control_frame = ttk.LabelFrame(frame, text="Audio Processing Controls", padding="10")
         control_frame.pack(fill='x', pady=10)
         
         ttk.Button(control_frame, text="Load Audio File", command=self.load_audio).pack(side='left', padx=5)
         
-        filter_frame = ttk.Frame(control_frame)
-        filter_frame.pack(side='left', padx=20)
+        # ── Filter Type Selection ────────────────────────────────────────
+        filter_type_frame = ttk.Frame(control_frame)
+        filter_type_frame.pack(side='left', padx=20)
         
-        ttk.Label(filter_frame, text="Apply Filter:").pack(side='left', padx=5)
-        ttk.Button(filter_frame, text="Lowpass (1kHz)",
-                   command=lambda: self.apply_audio_filter('lowpass')).pack(side='left', padx=3)
-        ttk.Button(filter_frame, text="Highpass (2kHz)",
-                   command=lambda: self.apply_audio_filter('highpass')).pack(side='left', padx=3)
-        ttk.Button(filter_frame, text="Bandpass (1-3kHz)",
-                   command=lambda: self.apply_audio_filter('bandpass')).pack(side='left', padx=3)
-        ttk.Button(filter_frame, text="Bandstop (1-3kHz)",
-                   command=lambda: self.apply_audio_filter('bandstop')).pack(side='left', padx=3)
+        ttk.Label(filter_type_frame, text="Filter Type:").pack(side='left', padx=5)
+        self.audio_filter_type = ttk.Combobox(filter_type_frame, width=15, state='readonly',
+                                              values=["Lowpass", "Highpass", "Bandpass", "Bandstop"])
+        self.audio_filter_type.current(0)
+        self.audio_filter_type.pack(side='left', padx=5)
         
         tk.Button(control_frame, text="🗑️ Delete", command=self.delete_audio,
                   fg="red", bg="#f0f0f0", relief='raised', cursor="hand2").pack(side='left', padx=5)
         
-        self.audio_fig = Figure(figsize=(10, 4), dpi=80)
+        # ── Dynamic Filter Options Panel ─────────────────────────────────
+        self.audio_options_frame = ttk.LabelFrame(
+            frame, text="Filter Options  —  select a filter type above", padding="8")
+        self.audio_options_frame.pack(fill='x', pady=(0, 4))
+        
+        ttk.Label(self.audio_options_frame,
+                  text="Select filter type and configure parameters below.",
+                  foreground="gray").pack(anchor='w')
+        
+        # ── Build initial filter options (Lowpass) ──────────────────────
+        self.build_audio_filter_options()
+        
+        # Bind combobox change
+        self.audio_filter_type.bind('<<ComboboxSelected>>', lambda e: self.build_audio_filter_options())
+        
+        # ── Matplotlib canvas ────────────────────────────────────────────
+        self.audio_fig = Figure(figsize=(10, 5), dpi=80)
         self.audio_canvas = FigureCanvasTkAgg(self.audio_fig, master=frame)
         self.audio_canvas.get_tk_widget().pack(fill='both', expand=True)
+    
+    def build_audio_filter_options(self):
+        """Dynamically build filter options panel based on selected filter type."""
+        for w in self.audio_options_frame.winfo_children():
+            w.destroy()
         
-        self.audio_data = None
-        self.audio_fs = None
-        self.filtered_audio = None
+        filter_type = self.audio_filter_type.get()
+        self.audio_options_frame.config(text=f"Filter Options  —  {filter_type}")
+        
+        common_frame = ttk.Frame(self.audio_options_frame)
+        common_frame.pack(fill='x', pady=5)
+        
+        ttk.Label(common_frame, text="Filter Design Method:").pack(side='left', padx=5)
+        ttk.Combobox(common_frame, textvariable=self.audio_design_method, width=15, state='readonly',
+                     values=["Butterworth", "Chebyshev I", "Bessel"]
+                     ).pack(side='left', padx=5)
+        
+        ttk.Label(common_frame, text="Filter Order (1-10):").pack(side='left', padx=5)
+        ttk.Spinbox(common_frame, from_=1, to=10, textvariable=self.audio_filter_order,
+                    width=5).pack(side='left', padx=5)
+        
+        options_frame = ttk.Frame(self.audio_options_frame)
+        options_frame.pack(fill='x', pady=5)
+        
+        if filter_type in ["Lowpass", "Highpass"]:
+            ttk.Label(options_frame, text="Cutoff Frequency (Hz):").pack(side='left', padx=5)
+            ttk.Spinbox(options_frame, from_=1, to=22050, increment=100,
+                        textvariable=self.audio_cutoff, width=10
+                        ).pack(side='left', padx=5)
+            ttk.Label(options_frame, text="(Nyquist check enabled)", foreground="gray").pack(side='left', padx=5)
+        
+        elif filter_type in ["Bandpass", "Bandstop"]:
+            ttk.Label(options_frame, text="Low Cutoff (Hz):").pack(side='left', padx=5)
+            ttk.Spinbox(options_frame, from_=1, to=22050, increment=100,
+                        textvariable=self.audio_cutoff_low, width=10
+                        ).pack(side='left', padx=5)
+            
+            ttk.Label(options_frame, text="High Cutoff (Hz):").pack(side='left', padx=5)
+            ttk.Spinbox(options_frame, from_=1, to=22050, increment=100,
+                        textvariable=self.audio_cutoff_high, width=10
+                        ).pack(side='left', padx=5)
+        
+        ttk.Button(options_frame, text="▶ Apply Filter",
+                   command=self.apply_audio_filter).pack(side='left', padx=10)
+        
+        info_text = (
+            f"Type: {filter_type} | "
+            f"Method: {self.audio_design_method.get()} | "
+            f"Order: {self.audio_filter_order.get()}"
+        )
+        ttk.Label(self.audio_options_frame, text=info_text, foreground="gray").pack(anchor='w', padx=5)
     
     def delete_audio(self):
         self.audio_data = None
@@ -584,7 +655,7 @@ class DSPMasterProgram:
         self.audio_fig.clear()
         self.audio_canvas.draw()
         messagebox.showinfo("Success", "Audio data cleared!")
-        
+    
     def load_audio(self):
         filepath = filedialog.askopenfilename(
             filetypes=[("WAV files", "*.wav"), ("All files", "*.*")]
@@ -600,44 +671,117 @@ class DSPMasterProgram:
             except Exception as e:
                 messagebox.showerror("Error", f"Could not load audio: {str(e)}")
     
-    def apply_audio_filter(self, filter_type):
+    def apply_audio_filter(self):
+        """Apply the selected filter with customizable parameters."""
         if self.audio_data is None:
             messagebox.showwarning("Warning", "Please load an audio file first")
             return
+        
         try:
+            filter_type = self.audio_filter_type.get()
+            design_method = self.audio_design_method.get()
+            order = int(self.audio_filter_order.get())
             nyq = 0.5 * self.audio_fs
-            if filter_type == 'lowpass':
-                norm = 1000 / nyq
-                b, a = butter(5, norm, btype='low')
-                title = "Lowpass Filtered (1kHz)"
-            elif filter_type == 'highpass':
-                norm = 2000 / nyq
-                b, a = butter(5, norm, btype='high')
-                title = "Highpass Filtered (2kHz)"
-            elif filter_type == 'bandpass':
-                norm = [1000 / nyq, 3000 / nyq]
-                b, a = butter(5, norm, btype='band')
-                title = "Bandpass Filtered (1-3kHz)"
-            else:
-                norm = [1000 / nyq, 3000 / nyq]
-                b, a = butter(5, norm, btype='bandstop')
-                title = "Bandstop Filtered (1-3kHz)"
+            
+            if order < 1 or order > 10:
+                raise ValueError("Filter order must be between 1 and 10.")
+            
+            if filter_type == "Lowpass":
+                cutoff = float(self.audio_cutoff.get())
+                if cutoff >= nyq:
+                    raise ValueError(f"Cutoff frequency ({cutoff} Hz) must be less than Nyquist frequency ({nyq} Hz)")
+                norm_cutoff = cutoff / nyq
+                b, a = self._design_filter(design_method, order, norm_cutoff, 'low')
+                title = f"Lowpass Filtered ({cutoff} Hz)"
+            
+            elif filter_type == "Highpass":
+                cutoff = float(self.audio_cutoff.get())
+                if cutoff >= nyq:
+                    raise ValueError(f"Cutoff frequency ({cutoff} Hz) must be less than Nyquist frequency ({nyq} Hz)")
+                norm_cutoff = cutoff / nyq
+                b, a = self._design_filter(design_method, order, norm_cutoff, 'high')
+                title = f"Highpass Filtered ({cutoff} Hz)"
+            
+            elif filter_type == "Bandpass":
+                cutoff_low = float(self.audio_cutoff_low.get())
+                cutoff_high = float(self.audio_cutoff_high.get())
+                if cutoff_low >= cutoff_high:
+                    raise ValueError("Low cutoff frequency must be less than high cutoff frequency.")
+                if cutoff_high >= nyq:
+                    raise ValueError(f"High cutoff ({cutoff_high} Hz) must be less than Nyquist ({nyq} Hz)")
+                norm_cutoffs = [cutoff_low / nyq, cutoff_high / nyq]
+                b, a = self._design_filter(design_method, order, norm_cutoffs, 'band')
+                title = f"Bandpass Filtered ({cutoff_low}-{cutoff_high} Hz)"
+            
+            elif filter_type == "Bandstop":
+                cutoff_low = float(self.audio_cutoff_low.get())
+                cutoff_high = float(self.audio_cutoff_high.get())
+                if cutoff_low >= cutoff_high:
+                    raise ValueError("Low cutoff frequency must be less than high cutoff frequency.")
+                if cutoff_high >= nyq:
+                    raise ValueError(f"High cutoff ({cutoff_high} Hz) must be less than Nyquist ({nyq} Hz)")
+                norm_cutoffs = [cutoff_low / nyq, cutoff_high / nyq]
+                b, a = self._design_filter(design_method, order, norm_cutoffs, 'bandstop')
+                title = f"Bandstop Filtered ({cutoff_low}-{cutoff_high} Hz)"
+            
             self.filtered_audio = lfilter(b, a, self.audio_data)
-            self.plot_audio(self.filtered_audio, title)
-            output_file = f"{filter_type}_filtered.wav"
+            self.plot_audio_comparison(self.audio_data, self.filtered_audio, title)
+            
+            output_file = f"{filter_type.lower()}_filtered.wav"
             sf.write(output_file, self.filtered_audio, self.audio_fs)
             messagebox.showinfo("Success", f"Filtered audio saved as {output_file}")
+        
+        except (ValueError, TypeError) as e:
+            messagebox.showerror("Error", f"Filter parameter error:\n{str(e)}")
         except Exception as e:
-            messagebox.showerror("Error", f"Filter error: {str(e)}")
+            messagebox.showerror("Error", f"Unexpected error during filtering:\n{str(e)}")
+    
+    def _design_filter(self, method, order, cutoff, btype):
+        """Design filter using specified method."""
+        try:
+            if method == "Butterworth":
+                return butter(order, cutoff, btype=btype)
+            elif method == "Chebyshev I":
+                return cheby1(order, rp=5, Wn=cutoff, btype=btype)
+            elif method == "Bessel":
+                return bessel(order, Wn=cutoff, btype=btype)
+            else:
+                raise ValueError(f"Unknown filter design method: {method}")
+        except (TypeError, ValueError) as e:
+            raise TypeError(f"Filter design error ({method}):\n{str(e)}")
     
     def plot_audio(self, signal, title):
+        """Plot single audio signal."""
         self.audio_fig.clear()
         ax = self.audio_fig.add_subplot(111)
-        ax.plot(signal)
+        ax.plot(signal, linewidth=0.5)
         ax.set_title(title)
         ax.set_xlabel("Samples")
         ax.set_ylabel("Amplitude")
         ax.grid(True, alpha=0.3)
+        self.audio_fig.tight_layout()
+        self.audio_canvas.draw()
+    
+    def plot_audio_comparison(self, original, filtered, title):
+        """Plot original vs filtered audio side-by-side."""
+        self.audio_fig.clear()
+        
+        ax1 = self.audio_fig.add_subplot(211)
+        ax1.plot(original, linewidth=0.5, color='blue')
+        ax1.set_title("Original Audio Signal")
+        ax1.set_ylabel("Amplitude")
+        ax1.grid(True, alpha=0.3)
+        
+        ax2 = self.audio_fig.add_subplot(212)
+        ax2.plot(filtered, linewidth=0.5, color='green')
+        ax2.set_title(title)
+        ax2.set_xlabel("Samples")
+        ax2.set_ylabel("Amplitude")
+        ax2.grid(True, alpha=0.3)
+        
+        self.audio_fig.suptitle(
+            f"Audio Filtering Comparison  |  fs={self.audio_fs} Hz  |  Order={self.audio_filter_order.get()}",
+            fontsize=11, fontweight='bold')
         self.audio_fig.tight_layout()
         self.audio_canvas.draw()
     
@@ -705,26 +849,49 @@ For DISCRETE TIME signals where n represents the sample number."""
     def z_transform_detailed(self, sequence, n_start=0):
         terms = []
         equation_steps = []
+
+        equation_steps.append("Formula: X(z) = sum of x(n)*z^(-n) for all n")
+        equation_steps.append("")
+        equation_steps.append("Step-by-step computation:")
+        equation_steps.append("-" * 50)
+
         for idx, val in enumerate(sequence):
             n = n_start + idx
-            if val == 0:
-                continue
-            z_power = f"z^({-n})"
-            if val == 1:
-                term = z_power
-            elif val == -1:
-                term = f"-{z_power}"
+            power = -n
+            # Format z power label cleanly
+            if power >= 0:
+                z_label = f"z^{power}"
             else:
-                term = f"{val}{z_power}"
-            terms.append(term)
-            equation_steps.append(f"  + x({n})·z^(-{n}) = {val}·z^({-n})")
+                z_label = f"z^({power})"
+
+            # Always show every term including zeros
+            equation_steps.append(f"  n={n:3d}:  x({n}) = {val:5}  ->  {val} * {z_label}")
+
+            if val == 0:
+                continue  # zero contributes nothing to X(z)
+
+            if val == 1:
+                term_str = z_label
+            elif val == -1:
+                term_str = f"-{z_label}"
+            else:
+                term_str = f"{val}*{z_label}"
+            terms.append(term_str)
+
+            # Show running accumulated X(z) after each non-zero term
+            running = " + ".join(terms).replace("+ -", "- ")
+            equation_steps.append(f"         X(z) so far = {running}")
+
+        equation_steps.append("-" * 50)
+
         if not terms:
             return "0", "0"
+
         result = " + ".join(terms).replace("+ -", "- ")
         detailed = "\n".join(equation_steps)
         return result, detailed
     
-    # ==================== TAB 4: INVERSE Z-TRANSFORM ====================
+    # ==================== TAB 4: INVERSE Z-TRANSFORM (FIXED) ====================
     def create_inverse_z_transform_tab(self):
         frame = ttk.Frame(self.notebook, padding="10")
         self.notebook.add(frame, text="Inverse Z-Transform (Lab 4B)")
@@ -732,23 +899,27 @@ For DISCRETE TIME signals where n represents the sample number."""
         info_frame = ttk.LabelFrame(frame, text="Instructions", padding="10")
         info_frame.pack(fill='x', pady=10)
         info_text = """Enter the Z-transform expression to find the inverse (recover x[n]).
-Example: X(z) = 4z^4 - z^3 - 3z + 4z^1 + 3z^2
-or: 4z^-1 + 0.5z^-2 + 2z^-3 - 3z^-4
+IMPORTANT: Use the format: coefficient*z^power (with asterisk *)
+Examples:
+  • 1*z^0 + 2*z^-1 + 3*z^-2
+  • 5*z^2 + 3*z^1 - 3*z^0 + 0*z^-1 + 4*z^-2
+  • 4*z^4 - 1*z^3 - 3*z^1 + 4*z^0 + 3*z^-1
 
 Specify the starting index n to determine where the sequence begins.
-Example: If X(z) = 4z^-(-2) + ... with n = -2, then x[-2] is the first value.
+Example: If starting n = -2, the first value maps to the HIGHEST power term.
 
-The Inverse Z-Transform recovers the discrete-time signal x[n] from X(z)."""
+The Inverse Z-Transform recovers the discrete-time signal x[n] from X(z).
+Powers are sorted DESCENDING: highest z-power → n_start, next → n_start+1, etc."""
         ttk.Label(info_frame, text=info_text, justify='left').pack(fill='x')
         
         input_frame = ttk.LabelFrame(frame, text="Inverse Z-Transform Calculator", padding="10")
         input_frame.pack(fill='x', pady=10)
         ttk.Label(input_frame, text="X(z) =").pack(side='left', padx=5)
-        self.inverse_z_input = ttk.Entry(input_frame, width=50)
+        self.inverse_z_input = ttk.Entry(input_frame, width=60)
         self.inverse_z_input.pack(side='left', padx=5)
         ttk.Label(input_frame, text="Starting n:").pack(side='left', padx=5)
         self.inverse_z_start = ttk.Entry(input_frame, width=8)
-        self.inverse_z_start.insert(0, "-2")
+        self.inverse_z_start.insert(0, "0")
         self.inverse_z_start.pack(side='left', padx=5)
         ttk.Button(input_frame, text="Calculate Inverse",
                    command=self.calculate_inverse_z_transform).pack(side='left', padx=5)
@@ -763,7 +934,7 @@ The Inverse Z-Transform recovers the discrete-time signal x[n] from X(z)."""
     def delete_inverse_z_transform(self):
         self.inverse_z_input.delete(0, tk.END)
         self.inverse_z_start.delete(0, tk.END)
-        self.inverse_z_start.insert(0, "-2")
+        self.inverse_z_start.insert(0, "0")
         self.inverse_z_output.delete(1.0, tk.END)
         messagebox.showinfo("Success", "Inverse Z-Transform data cleared!")
     
@@ -774,51 +945,76 @@ The Inverse Z-Transform recovers the discrete-time signal x[n] from X(z)."""
                 messagebox.showwarning("Warning", "Please enter a Z-transform expression")
                 return
             n_start = int(self.inverse_z_start.get())
-            coefficients = self.parse_z_transform(input_str)
+            coefficients = self.parse_z_transform_fixed(input_str)
             if not coefficients:
-                messagebox.showerror("Error", "Could not parse the expression. Check the format.")
+                messagebox.showerror("Error",
+                    "Could not parse the expression. Check the format.\n"
+                    "Use format: coeff*z^power  e.g.  5*z^2 + 3*z^1 - 3*z^0 + 0*z^-1 + 4*z^-2")
                 return
+
             self.inverse_z_output.delete(1.0, tk.END)
-            self.inverse_z_output.insert(tk.END, f"Input X(z): {input_str}\n\n")
-            self.inverse_z_output.insert(tk.END, f"Parsing Z-domain Expression:\n")
-            self.inverse_z_output.insert(tk.END, f"Extracted coefficients: {coefficients}\n\n")
-            sorted_indices = sorted(coefficients.keys())
-            x_values = [coefficients[i] for i in sorted_indices]
+
+            # ── Header ────────────────────────────────────────────────────
+            self.inverse_z_output.insert(tk.END, f"Input X(z): {input_str}\n")
+            self.inverse_z_output.insert(tk.END, f"Starting index n = {n_start}\n")
+            self.inverse_z_output.insert(tk.END, "=" * 55 + "\n\n")
+
+            # ── Sort powers DESCENDING: highest power = n_start ───────────
+            sorted_powers = sorted(coefficients.keys(), reverse=True)
+            x_values = [coefficients[p] for p in sorted_powers]
+
+            # ── Step-by-step solution ─────────────────────────────────────
             self.inverse_z_output.insert(tk.END,
-                f"Sequence x[n] = {x_values} starting at n = {n_start}\n\n")
-            self.inverse_z_output.insert(tk.END, f"Detailed Values:\n")
-            for idx, power in enumerate(sorted_indices):
+                "Principle: coefficient of z^k  ->  x[n] at that sample\n")
+            self.inverse_z_output.insert(tk.END,
+                "Powers sorted highest→lowest map to n_start, n_start+1, ...\n")
+            self.inverse_z_output.insert(tk.END, "-" * 55 + "\n")
+
+            for idx, power in enumerate(sorted_powers):
                 n = n_start + idx
-                self.inverse_z_output.insert(tk.END, f"  x[{n}] = {coefficients[power]}\n")
-            self.inverse_z_output.insert(tk.END, f"\nInverse Answer:\n")
+                coeff = coefficients[power]
+                # Format power label
+                p_label = f"z^{power}" if power >= 0 else f"z^({power})"
+                zero_note = "  <- zero term (kept in sequence)" if coeff == 0 else ""
+                self.inverse_z_output.insert(tk.END,
+                    f"  {p_label}  ->  n={n:3d}  :  x[{n}] = {coeff}{zero_note}\n")
+
+            self.inverse_z_output.insert(tk.END, "-" * 55 + "\n\n")
+
+            # ── Final answer ──────────────────────────────────────────────
+            self.inverse_z_output.insert(tk.END, "Sequence x[n]:\n")
             self.inverse_z_output.insert(tk.END,
-                f"x[n] = {{{', '.join(map(str, x_values))}}}\n")
+                f"  {x_values}  (starting at n = {n_start})\n\n")
+            self.inverse_z_output.insert(tk.END, "Final Answer:\n")
+            self.inverse_z_output.insert(tk.END,
+                f"  x[n] = {{ {', '.join(map(str, x_values))} }}\n")
+
         except ValueError as e:
-            messagebox.showerror("Error", f"Invalid starting index. {str(e)}")
+            messagebox.showerror("Error", f"Invalid input. {str(e)}")
     
-    def parse_z_transform(self, expr):
+    def parse_z_transform_fixed(self, expr):
+        """
+        Parse Z-transform expression with format: coeff*z^power
+
+        Uses re.findall with a signed-token pattern so that every term —
+        including zero coefficients and negative coefficients after a minus
+        sign — is captured correctly without any string-splitting hacks.
+
+        Examples handled:
+            5*z^2 + 3*z^1 - 3*z^0 + 0*z^-1 + 4*z^-2
+            4*z^4 - 1*z^3 - 3*z^1 + 4*z^0 + 3*z^-1
+            1*z^0 + 2*z^-1 + 3*z^-2
+        """
         coefficients = {}
-        expr = expr.replace(' - ', ' + -').replace('-', '+-')
-        terms = expr.split('+')
-        terms = [t.strip() for t in terms if t.strip()]
-        for term in terms:
-            match = re.match(r'([+-]?\d*)\s*z\^\((-?\d+)\)', term)
-            if match:
-                coeff = match.group(1)
-                power = int(match.group(2))
-                if coeff in ['', '+']: coeff = 1
-                elif coeff == '-': coeff = -1
-                else: coeff = int(coeff)
-                coefficients[power] = coeff
-            else:
-                match = re.match(r'([+-]?\d*)\s*z\^(-?\d+)', term)
-                if match:
-                    coeff = match.group(1)
-                    power = int(match.group(2))
-                    if coeff in ['', '+']: coeff = 1
-                    elif coeff == '-': coeff = -1
-                    else: coeff = int(coeff)
-                    coefficients[power] = coeff
+        # Remove all whitespace for clean matching
+        expr = expr.replace(' ', '')
+        # Pattern: optional leading sign, integer or decimal coeff, *z^, signed integer power
+        pattern = re.compile(r'([+-]?\d+(?:\.\d+)?)\*z\^([+-]?\d+)')
+        matches = pattern.findall(expr)
+        for coeff_str, power_str in matches:
+            coeff = float(coeff_str) if '.' in coeff_str else int(coeff_str)
+            power = int(power_str)
+            coefficients[power] = coeff
         return coefficients
     
     # ==================== TAB 5: FFT ANALYSIS ====================
