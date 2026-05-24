@@ -21,7 +21,7 @@ class DSPMasterProgram:
     def __init__(self, root):
         self.root = root
         self.root.title("Advanced Digital Signal Processing Suite")
-        self.root.geometry("1280x850")
+        self.root.state("zoomed")
         self.root.configure(bg="#1e272e") # Deep Dark background
 
         self.apply_custom_styles()
@@ -29,9 +29,9 @@ class DSPMasterProgram:
         # Header Area
         header = tk.Frame(root, bg="#2f3640", height=60)
         header.pack(fill='x', side='top')
-        tk.Label(header, text="CORE DSP MASTER ENGINE", font=("Segoe UI", 18, "bold"),
+        tk.Label(header, text="DIGITAL SIGNAL PROCESSING FINALS", font=("Segoe UI", 18, "bold"),
                  fg="#00d8d6", bg="#2f3640").pack(pady=10, padx=20, side='left')
-        self.back_button = tk.Button(header, text="← Back to Labs", command=self.show_front_page,
+        self.back_button = tk.Button(header, text="← Back", command=self.show_front_page,
                                      bg="#00d8d6", fg="#1e272e", activebackground="#34e7e4",
                                      activeforeground="#1e272e", relief="flat",
                                      font=("Segoe UI", 10, "bold"), padx=14, pady=6,
@@ -84,7 +84,7 @@ class DSPMasterProgram:
 
         tk.Label(hero, text="Choose a DSP Laboratory", font=("Segoe UI", 30, "bold"),
                  fg="white", bg="#1e272e").pack(anchor='w')
-        tk.Label(hero, text="Open one module at a time. Use the Back button to return to this lab launcher.",
+        tk.Label(hero, text="A full Digital Signal Processing lesson compressed into one interactive program.",
                  font=("Segoe UI", 12), fg="#d2dae2", bg="#1e272e").pack(anchor='w', pady=(6, 0))
 
         lab_grid = tk.Frame(self.home_frame, bg="#1e272e")
