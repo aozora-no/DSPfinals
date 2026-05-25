@@ -12,19 +12,56 @@ from PIL import Image, ImageTk
 import io
 import re
 import time
+from tkinter import font as tkfont
+
+# Set Matplotlib to a cleaner style for a professional look
+plt.style.use('dark_background')
+plt.rcParams['axes.facecolor'] = '#2d2d2d'
+plt.rcParams['figure.facecolor'] = '#1e1e1e'
+plt.rcParams['savefig.facecolor'] = '#1e1e1e'
+plt.rcParams['text.color'] = '#ffffff'
+plt.rcParams['axes.labelcolor'] = '#ffffff'
+plt.rcParams['axes.titlecolor'] = '#4caf50'
+plt.rcParams['xtick.color'] = '#ffffff'
+plt.rcParams['ytick.color'] = '#ffffff'
+plt.rcParams['grid.color'] = '#555555'
+plt.rcParams['lines.linewidth'] = 1.5
+
 
 class DSPMasterProgram:
     def __init__(self, root):
         self.root = root
-        self.root.title("Digital Signal Processing Master Program")
-        self.root.geometry("1200x700")
-        self.root.configure(bg="#f0f0f0")
+        self.root.title("Advanced Digital Signal Processing Suite")
+        self.root.state("zoomed")
+        self.root.configure(bg="#1e1e1e") # Deep Dark background
+
+        self.title_font = tkfont.Font(family="Segoe UI", size=18, weight="bold")
+        self.subtitle_font = tkfont.Font(family="Segoe UI", size=12)
+
+        self.apply_custom_styles()
+
+        # Header Area
+        header = tk.Frame(root, bg="#2d2d2d", height=60)
+        header.pack(fill='x', side='top')
+
+        tk.Frame(header, bg="#4caf50", width=4, height=40).pack(side='left', padx=(20, 10), pady=12)
+
+        tk.Label(header, text="DSP Studio: Multi-Functional Signal Processing Suite",
+                 font=self.title_font,
+                 fg="#4caf50", bg="#2d2d2d").pack(pady=10, padx=20, side='left')
         
-        # Create notebook (tabs)
-        self.notebook = ttk.Notebook(root)
-        self.notebook.pack(fill='both', expand=True, padx=5, pady=5)
-        
-        # Create tabs
+        #Back Button Style
+        self.back_button = tk.Button(header, text="← Back", command=self.show_front_page,
+                                     bg="#4caf50", fg="#1e1e1e", activebackground="#45a049",
+                                     activeforeground="#1e1e1e", relief="flat",
+                                     font=("Segoe UI", 10, "bold"), padx=16, pady=6,
+                                     cursor="hand2", borderwidth=0)
+
+        # Front page and hidden-tab lab container
+        self.home_frame = tk.Frame(root, bg="#1e1e1e")
+        self.notebook = ttk.Notebook(root, style="Hidden.TNotebook")
+
+        # Tabs initialization
         self.create_lab1_tab()
         self.create_image_processing_tab()
         self.create_audio_processing_tab()
@@ -34,187 +71,345 @@ class DSPMasterProgram:
         self.create_fft_tab()
         self.create_windowing_tab()
         self.create_fir_iir_lab8_tab()
+        self.create_front_page()
+        self.show_front_page()
+        self.root.bind("<Escape>", lambda event: self.show_front_page())
 
+    def apply_custom_styles(self):
+        style = ttk.Style()
+        style.theme_use('clam')
 
-# ==# ==================== TAB 5: FFT ALGORITHM VISUALIZER (LAB 6) ====================
-    def create_fft_tab(self):
-        frame = ttk.Frame(self.notebook, padding="10")
-        self.notebook.add(frame, text="FFT vs DFT Algorithm (Lab 6)")
+        # Configure colors - Dark theme like PyQt5 version
+        bg_dark = "#1e1e1e"   # Main background
+        bg_card = "#2d2d2d"    # Card background
+        bg_lighter = "#3c3c3c" # Lighter background
+        accent = "#4caf50"     # Green accent (matches PyQt5)
+        accent_hover = "#45a049"
+        text_primary = "#ffffff"
+        text_secondary = "#cccccc"
+
+        # Notebook Styling
+        style.configure("TNotebook", background=bg_dark, borderwidth=0)
+        style.configure("TNotebook.Tab", 
+                        font=("Segoe UI", 10, "bold"), 
+                        padding=[10, 5], 
+                        background=bg_lighter, 
+                        foreground=text_secondary,
+                        borderwidth=0,
+                        focusthickness=0)
+        style.map("TNotebook.Tab", 
+                    background=[("selected", accent)],
+                    foreground=[("selected", "#000000")],
+                    expand=[("selected", [1, 1, 1, 0])])
         
-        # --- Top Section: Algorithm Info ---
-        top_frame = ttk.Frame(frame)
-        top_frame.pack(fill='x', pady=5)
+        style.configure("Hidden.TNotebook", background=bg_dark, borderwidth=0, tabmargins=[0, 5, 0, 0])
+        # style.configure("Hidden.TNotebook", 
+        #                 font=("Segoe UI", 10, "bold"), 
+        #                 padding=[10, 5], 
+        #                 background=bg_lighter, 
+        #                 foreground=text_secondary,
+        #                 borderwidth=0,
+        #                 focusthickness=0)
+        # style.map("Hidden.TNotebook", 
+        #             background=[("selected", accent)],
+        #             foreground=[("selected", "#000000")],
+        #             expand=[("selected", [1, 1, 1, 0])])
+        style.layout("Hidden.TNotebook.Tab", [])
 
-        ctrl_frame = ttk.LabelFrame(top_frame, text="Race Configuration", padding="10")
-        ctrl_frame.pack(side='left', fill='y', padx=5)
+        # Frame Styling
+        style.configure("TFrame", background=bg_dark)
+        style.configure("Card.TFrame", background=bg_card, relief="flat", borderwidth=1)
 
-        ttk.Label(ctrl_frame, text="Signal Size (N):").pack(anchor='w')
-        self.fft_n_size = ttk.Combobox(ctrl_frame, values=["64", "128", "256", "512"], width=10, state="readonly")
-        self.fft_n_size.current(0) # Default 64
-        self.fft_n_size.pack(pady=5)
+        # LabelFrame Styling (The Dashboard Cards)
+        style.configure("TLabelframe",
+                        background=bg_card, 
+                        relief="flat", 
+                        borderwidth=1,
+                        bordercolor=accent)
+        style.configure("TLabelframe.Label", 
+                        font=("Segoe UI", 10, "bold"), 
+                        foreground=accent, 
+                        background=bg_card)
 
-        self.race_btn = ttk.Button(ctrl_frame, text="🚩 Start Algorithm Race", command=self.start_fft_race)
-        self.race_btn.pack(fill='x', pady=2)
+        # Button Styling
+        style.configure("TButton",
+                        font=("Segoe UI", 9, "bold"), 
+                        padding=8,
+                        background=accent,
+                        foreground="#000000",
+                        borderwidth=0,
+                        focusthickness=0)
+        style.configure("Action.TButton", 
+                        background=[("active", accent_hover), ("pressed", "#3d8b40")],
+                        foreground=[("active", "#000000")])
         
-        tk.Button(ctrl_frame, text="🗑️ Clear", command=self.delete_fft,
-                  fg="red", bg="#f0f0f0", relief='raised').pack(fill='x', pady=2)
+        style.configure("Action.TButton", background="#2196F3", foreground="#ffffff")
 
-        # --- The "How it Works" Scoreboard ---
-        how_frame = ttk.LabelFrame(top_frame, text="Algorithm Comparison Logic", padding="10")
-        how_frame.pack(side='left', fill='both', expand=True, padx=5)
-
-        self.lbl_logic_dft = ttk.Label(how_frame, text="DFT: Brute Force Loop\nEvery sample x every frequency.", 
-                                       foreground="red", font=("Courier", 9))
-        self.lbl_logic_dft.pack(anchor='w', pady=2)
+        # Entry Styling
+        style.configure("TEntry", 
+                    fieldbackground=bg_lighter,
+                    foreground=text_primary,
+                    borderwidth=1,
+                    bordercolor=bg_lighter,
+                    padding=5)
         
-        self.lbl_logic_fft = ttk.Label(how_frame, text="FFT: Divide & Conquer (Butterfly)\nSplits signal into Even/Odd recursively.", 
-                                       foreground="green", font=("Courier", 9))
-        self.lbl_logic_fft.pack(anchor='w', pady=2)
-
-        self.lbl_math_stats = ttk.Label(how_frame, text="Math Ops: ---", font=("Helvetica", 10, "bold"), foreground="blue")
-        self.lbl_math_stats.pack(pady=5)
-
-        # --- Plots ---
-        self.fft_fig = Figure(figsize=(10, 5), dpi=80)
-        self.fft_canvas = FigureCanvasTkAgg(self.fft_fig, master=frame)
-        self.fft_canvas.get_tk_widget().pack(fill='both', expand=True)
+        # Combobox Styling
+        style.configure("TCombobox", 
+                    fieldbackground=bg_lighter,
+                    foreground=text_primary,
+                    selectbackground=accent,
+                    borderwidth=1,
+                    padding=5)
         
-        self.is_racing = False
+        # Label Styling
+        style.configure("TLabel", background=bg_dark, foreground=text_secondary)
 
-    def delete_fft(self):
-        self.is_racing = False
-        self.fft_fig.clear()
-        self.fft_canvas.draw()
-        self.lbl_math_stats.config(text="Math Ops: ---")
-        self.race_btn.config(state="normal")
+        # Scrollbar Styling
+        style.configure("Vertical.TScrollbar", 
+                    background=bg_lighter,
+                    troughcolor=bg_dark,
+                    borderwidth=0,
+                    arrowsize=13)
+        style.map("Vertical.TScrollbar",
+                background=[("active", accent)])
 
-    def start_fft_race(self):
-        if self.is_racing: return
-        self.is_racing = True
-        self.race_btn.config(state="disabled")
-        
-        N = int(self.fft_n_size.get())
-        fs = 1000
-        t = np.arange(N) / fs
-        # Signal based on PDF Motor Study: 20Hz and 240Hz
-        x = np.sin(2 * np.pi * 20 * t) + 0.5 * np.sin(2 * np.pi * 240 * t)
-        
-        self.fft_fig.clear()
-        self.ax_dft = self.fft_fig.add_subplot(121)
-        self.ax_fft = self.fft_fig.add_subplot(122)
-        
-        # 1. SHOW THE FFT LOGIC (Divide & Conquer)
-        import time
-        t0 = time.perf_counter()
-        X_fft = np.fft.fft(x)
-        fft_time = (time.perf_counter() - t0) * 1000
-        
-        # FFT Math: N * log2(N)
-        fft_ops = int(N * np.log2(N))
-        dft_ops = N * N
-        
-        self.lbl_math_stats.config(text=f"For N={N}:\nDFT needs {dft_ops} operations\nFFT only needs {fft_ops} operations!")
+    def create_front_page(self):
+        lab_grid = tk.Frame(self.home_frame, bg="#1e1e1e")
+        lab_grid.place(relx=0.5, rely=0.54, anchor="center", relwidth=0.94, relheight=0.82)
 
-        freqs = np.fft.fftfreq(N, 1/fs)
-        self.ax_fft.stem(freqs[:N//2], np.abs(X_fft[:N//2]), linefmt='g-', markerfmt='go', basefmt=' ')
-        self.ax_fft.set_title(f"FFT Algorithm\n{int(np.log2(N))} 'Butterfly' Stages")
-        self.fft_canvas.draw()
+        labs = [
+            ("📈", "Lab 1", "Signal Plotter", "Continuous, sampled, and overlay waveform synthesis.", "#00d8d6"),
+            ("🖼️", "Lab 2", "Imaging", "Load images and apply grayscale, binary, and filter tools.", "#54a0ff"),
+            ("🔊", "Lab 3", "Audio", "Import WAV files and inspect lowpass filtering results.", "#1dd1a1"),
+            ("Ω", "Lab 4", "Z-Transform", "Generate symbolic Z expressions from discrete sequences.", "#feca57"),
+            ("Ω", "Lab 4B", "Inverse Z", "Extract sequence values from Z-domain expressions.", "#ff9f43"),
+            ("⚙️", "Lab 5", "DFT Analysis", "Run manual DFT checks and vibration spectrum simulations.", "#ff6b6b"),
+            ("⚡", "Lab 6", "FFT vs DFT", "Compare direct DFT loops against fast FFT computation.", "#5f27cd"),
+            ("🪟", "Lab 7", "Windowing", "Study window functions and spectral leakage behavior.", "#48dbfb"),
+            ("⚖️", "Lab 8", "FIR vs IIR", "Compare filter response and design characteristics.", "#c8d6e5"),
+        ]
+
+        for col in range(3):
+            lab_grid.grid_columnconfigure(col, weight=1, uniform="labcards")
+        for row in range(3):
+            lab_grid.grid_rowconfigure(row, weight=1, uniform="labcards")
+
+        for index, (icon, lab, title, desc, accent) in enumerate(labs):
+            row = index // 3
+            col = index % 3
+
+            card = tk.Frame(
+                lab_grid,
+                bg="#2d2d2d",
+                highlightthickness=2,
+                highlightbackground=accent,
+                highlightcolor=accent,
+                cursor="hand2",
+                relief="flat"
+            )
+            card.grid(row=row, column=col, sticky="nsew", padx=14, pady=14)
+            card.grid_propagate(False)
+
+            accent_bar = tk.Frame(card, bg=accent, height=5)
+            accent_bar.pack(fill="x", side="top")
+
+            body = tk.Frame(card, bg="#2d2d2d")
+            body.pack(fill="both", expand=True, padx=24, pady=14)
+
+            top_row = tk.Frame(body, bg="#2d2d2d")
+            top_row.pack(fill="x", anchor="w")
+
+            icon_label = tk.Label(
+                top_row,
+                text=icon,
+                font=("Segoe UI", 24),
+                fg=accent,
+                bg="#2d2d2d",
+                width=3,
+                anchor="w"
+            )
+            icon_label.pack(side="left", padx=(0, 18))
+
+            text_col = tk.Frame(top_row, bg="#2d2d2d")
+            text_col.pack(side="left", fill="x", expand=True)
+
+            lab_label = tk.Label(
+                text_col,
+                text=lab,
+                font=("Segoe UI", 10, "bold"),
+                fg=accent,
+                bg="#2d2d2d",
+                anchor="w"
+            )
+            lab_label.pack(fill="x")
+
+            title_label = tk.Label(
+                text_col,
+                text=title,
+                font=("Segoe UI", 14, "bold"),
+                fg="#ffffff",
+                bg="#2d2d2d",
+                anchor="w",
+                justify="left"
+            )
+            title_label.pack(fill="x")
+
+            desc_label = tk.Label(
+                body,
+                text=desc,
+                font=("Segoe UI", 10),
+                fg="#cccccc",
+                bg="#2d2d2d",
+                anchor="nw",
+                justify="left"
+            )
+            desc_label.pack(fill="x", anchor="w", pady=(22, 0))
+
+            def update_wrap(event, label=desc_label):
+                label.configure(wraplength=max(220, event.width - 64))
+
+            card.bind("<Configure>", update_wrap)
+
+            widgets = (
+                card, accent_bar, body, top_row, icon_label,
+                text_col, lab_label, title_label, desc_label
+            )
+
+            for widget in widgets:
+                widget.bind("<Button-1>", lambda event, i=index: self.open_lab(i))
+                widget.bind("<Enter>", lambda event, c=card, b=body, a=accent: self._set_card_hover(c, b, a, True))
+                widget.bind("<Leave>", lambda event, c=card, b=body, a=accent: self._set_card_hover(c, b, a, False))
         
-        # 2. START THE SLOW DFT ANIMATION
-        self.dft_results = np.zeros(N, dtype=complex)
-        self.dft_start_clock = time.perf_counter()
-        self._animate_dft_logic(x, 0, N, fs)
 
-    def _animate_dft_logic(self, x, k, N, fs):
-        if not self.is_racing: return
+    def _set_card_hover(self, card, body, accent, hover):
+        bg = "#343434" if hover else "#2d2d2d"
+        glow = accent if hover else accent
 
-        if k >= N // 2:
-            total_time = (time.perf_counter() - self.dft_start_clock) * 1000
-            self.lbl_math_stats.config(text=f"RACE FINISHED\nDFT: {total_time:.1f}ms\nFFT: Instant")
-            self.race_btn.config(state="normal")
-            self.is_racing = False
-            return
+        card.configure(
+            bg=bg,
+            highlightbackground=glow,
+            highlightcolor=glow,
+            highlightthickness=3 if hover else 2
+        )
 
-        # Manual Summation (The way shown on Page 5 of your PDF)
-        # We calculate EACH bin using a loop.
-        for n in range(N):
-            theta = 2 * np.pi * k * n / N
-            self.dft_results[k] += x[n] * (np.cos(theta) - 1j * np.sin(theta))
-        
-        # Update Plot
-        self.ax_dft.clear()
-        self.ax_dft.set_title(f"Manual DFT Loop\nBin {k} uses {N} multiplications")
-        freqs = np.fft.fftfreq(N, 1/fs)
-        self.ax_dft.stem(freqs[:k+1], np.abs(self.dft_results[:k+1]), linefmt='r-', markerfmt='ro', basefmt=' ')
-        self.ax_dft.set_xlim(0, 500)
-        self.ax_dft.set_ylim(0, N/2 + 5)
-        
-        self.fft_canvas.draw()
+        def recolor_children(widget):
+            for child in widget.winfo_children():
+                if isinstance(child, tk.Frame):
+                    child.configure(bg=bg)
+                    recolor_children(child)
+                elif isinstance(child, tk.Label):
+                    child.configure(bg=bg)
 
-        # The delay represents the extra time the CPU takes for O(N^2)
-        self.root.after(15, lambda: self._animate_dft_logic(x, k + 1, N, fs))
+        body.configure(bg=bg)
+        recolor_children(body)
+
+    def open_lab(self, index):
+        self.home_frame.pack_forget()
+        self.notebook.pack(fill='both', expand=True, padx=10, pady=10)
+        self.notebook.select(index)
+        self.back_button.pack(pady=10, padx=20, side='right')
+
+    def show_front_page(self):
+        self.notebook.pack_forget()
+        self.back_button.pack_forget()
+        self.home_frame.pack(fill='both', expand=True)
+        self.back_button.config(bg="#4caf50")
 
     # ==================== TAB 0: LAB 1 - CUSTOM SIGNAL PLOTTER ====================
     def create_lab1_tab(self):
-        frame = ttk.Frame(self.notebook, padding="10")
-        self.notebook.add(frame, text="Lab 1 - Signal Plotter")
+        # Register dark theme styles first
+        style = ttk.Style()
+        
+        # Configure styles with correct ttk naming conventions
+        style.configure("Dark.TFrame", background="#2d2d2d")
+        style.configure("Dark.TLabelframe", background="#2d2d2d", foreground="white")
+        style.configure("Dark.TLabelframe.Label", background="#2d2d2d", foreground="white")
+        style.configure("Dark.TLabel", background="#2d2d2d", foreground="white")
+        style.configure("Dark.TEntry", fieldbackground="#3c3c3c", foreground="white", 
+                    background="#3c3c3c", insertcolor="white")
+        style.configure("Dark.TCombobox", fieldbackground="#3c3c3c", foreground="white",
+                    background="#3c3c3c", selectbackground="#505050")
+        style.map("Dark.TCombobox",
+                fieldbackground=[('readonly', '#3c3c3c')],
+                selectbackground=[('readonly', '#505050')])
+        
+        # Configure button style for green buttons
+        style.configure("Green.TButton", 
+                    background="#4caf50", 
+                    foreground="white",
+                    font=("Segoe UI", 9, "bold"),
+                    padding=(12, 6), 
+                    borderwidth=0, 
+                    focusthickness=0)
+        style.map("Green.TButton",
+                background=[('active', '#45a049'), ('pressed', '#3d8b40')],
+                foreground=[('active', 'white'), ('pressed', 'white')])
+        
+        frame = ttk.Frame(self.notebook, padding="10", style="Dark.TFrame")
+        self.notebook.add(frame, text="📈 Lab 1: Signal Plotter")
 
         # ---- Parameters frame ----
-        param_frame = ttk.LabelFrame(frame, text="Signal Parameters", padding="10")
-        param_frame.pack(fill='x', pady=(0, 5))
+        param_frame = ttk.LabelFrame(frame, text="Signal Parameters", padding="10", style="Dark.TLabelframe")
+        param_frame.pack(fill='x', pady=(0, 10))
 
-        # Row 1: Signal type, frequency, duration
-        row1 = ttk.Frame(param_frame)
-        row1.pack(fill='x', pady=3)
+        # Row 1: Signal type, frequency, duration, amplitude
+        row1 = ttk.Frame(param_frame, style="Dark.TFrame")
+        row1.pack(fill='x', pady=5)
 
-        ttk.Label(row1, text="Signal Type:").pack(side='left', padx=(0, 4))
-        self.lab1_signal_type = ttk.Combobox(row1, width=10, state='readonly',
-            values=["Cosine", "Sine"])
+        ttk.Label(row1, text="Signal Type:", style="Dark.TLabel").pack(side='left', padx=(0, 8))
+        self.lab1_signal_type = ttk.Combobox(row1, width=12, state='readonly',
+            values=["Cosine", "Sine"], style="Dark.TCombobox")
         self.lab1_signal_type.current(0)
-        self.lab1_signal_type.pack(side='left', padx=(0, 15))
+        self.lab1_signal_type.pack(side='left', padx=(0, 20))
 
-        ttk.Label(row1, text="Frequency (Hz):").pack(side='left', padx=(0, 4))
-        self.lab1_freq = ttk.Entry(row1, width=8)
+        ttk.Label(row1, text="Frequency (Hz):", style="Dark.TLabel").pack(side='left', padx=(0, 8))
+        self.lab1_freq = ttk.Entry(row1, width=10, style="Dark.TEntry")
         self.lab1_freq.insert(0, "5")
-        self.lab1_freq.pack(side='left', padx=(0, 15))
+        self.lab1_freq.pack(side='left', padx=(0, 20))
 
-        ttk.Label(row1, text="Duration (s):").pack(side='left', padx=(0, 4))
-        self.lab1_duration = ttk.Entry(row1, width=8)
+        ttk.Label(row1, text="Duration (s):", style="Dark.TLabel").pack(side='left', padx=(0, 8))
+        self.lab1_duration = ttk.Entry(row1, width=10, style="Dark.TEntry")
         self.lab1_duration.insert(0, "1")
-        self.lab1_duration.pack(side='left', padx=(0, 15))
+        self.lab1_duration.pack(side='left', padx=(0, 20))
 
-        ttk.Label(row1, text="Amplitude:").pack(side='left', padx=(0, 4))
-        self.lab1_amplitude = ttk.Entry(row1, width=8)
+        ttk.Label(row1, text="Amplitude:", style="Dark.TLabel").pack(side='left', padx=(0, 8))
+        self.lab1_amplitude = ttk.Entry(row1, width=10, style="Dark.TEntry")
         self.lab1_amplitude.insert(0, "1")
         self.lab1_amplitude.pack(side='left')
 
         # Row 2: Sample rate (only used for sampled plots)
-        row2 = ttk.Frame(param_frame)
-        row2.pack(fill='x', pady=3)
+        row2 = ttk.Frame(param_frame, style="Dark.TFrame")
+        row2.pack(fill='x', pady=5)
 
-        ttk.Label(row2, text="Sample Rate fs (Hz):").pack(side='left', padx=(0, 4))
-        self.lab1_fs = ttk.Entry(row2, width=8)
+        ttk.Label(row2, text="Sample Rate fs (Hz):", style="Dark.TLabel").pack(side='left', padx=(0, 8))
+        self.lab1_fs = ttk.Entry(row2, width=10, style="Dark.TEntry")
         self.lab1_fs.insert(0, "8000")
         self.lab1_fs.pack(side='left', padx=(0, 15))
 
-        ttk.Label(row2, text="(used for Sampled and Both plots)",
-                  foreground="gray").pack(side='left')
+        ttk.Label(row2, text="(used for Sampled and Both plots)", style="Dark.TLabel",
+                foreground="#888888").pack(side='left')
 
         # ---- Plot type selection ----
-        plot_frame = ttk.LabelFrame(frame, text="Plot Type", padding="10")
-        plot_frame.pack(fill='x', pady=(0, 5))
+        plot_frame = ttk.LabelFrame(frame, text="Plot Type", padding="10", style="Dark.TLabelframe")
+        plot_frame.pack(fill='x', pady=(0, 10))
 
-        btn_row = ttk.Frame(plot_frame)
-        btn_row.pack(fill='x')
+        btn_row = ttk.Frame(plot_frame, style="Dark.TFrame")
+        btn_row.pack(fill='x', pady=5)
 
-        ttk.Button(btn_row, text="📈 Continuous Only",
-                   command=lambda: self.lab1_plot("continuous")).pack(side='left', padx=5)
-        ttk.Button(btn_row, text="📊 Sampled Only",
-                   command=lambda: self.lab1_plot("sampled")).pack(side='left', padx=5)
-        ttk.Button(btn_row, text="📈📊 Both (Continuous + Sampled)",
-                   command=lambda: self.lab1_plot("both")).pack(side='left', padx=5)
-        tk.Button(btn_row, text="🗑️ Clear", command=self.lab1_delete,
-                  fg="red", bg="#f0f0f0", relief='raised', cursor="hand2").pack(side='left', padx=15)
+        # Green buttons for plot types
+        ttk.Button(btn_row, text="📈 Continuous Only", style="Green.TButton",
+                command=lambda: self.lab1_plot("continuous")).pack(side='left', padx=8)
+        ttk.Button(btn_row, text="📊 Sampled Only", style="Green.TButton",
+                command=lambda: self.lab1_plot("sampled")).pack(side='left', padx=8)
+        ttk.Button(btn_row, text="📈📊 Both (Continuous + Sampled)", style="Green.TButton",
+                command=lambda: self.lab1_plot("both")).pack(side='left', padx=8)
+        
+        # Clear button with green styling
+        clear_btn = tk.Button(btn_row, text="🗑️ Clear", command=self.lab1_delete,
+                            bg="#f44336", fg="white", font=("Segoe UI", 9, "bold"),
+                            relief='flat', cursor="hand2", padx=12,
+                            activebackground="#45a049", activeforeground="white")
+        clear_btn.pack(side='left', padx=15)
 
         # ---- Examples section ----
         # Preset: (label, signal_type, freq, duration, amplitude, fs, plot_mode)
@@ -227,31 +422,40 @@ class DSPMasterProgram:
             ("5kHz @ 8kHz (Aliasing ⚠️)", "Cosine", 5000, 0.01, 1, 8000, "both"),
         ]
 
-        ex_frame = ttk.LabelFrame(frame, text="Examples  (auto-fills parameters above)", padding="8")
-        ex_frame.pack(fill='x', pady=(0, 5))
+        ex_frame = ttk.LabelFrame(frame, text="Examples (auto-fills parameters above)", padding="10", style="Dark.TLabelframe")
+        ex_frame.pack(fill='x', pady=(0, 10))
 
-        ex_row = ttk.Frame(ex_frame)
+        # Create a canvas with scrollbar for examples if they don't fit
+        ex_container = ttk.Frame(ex_frame, style="Dark.TFrame")
+        ex_container.pack(fill='x', pady=5)
+        
+        # Use grid layout for examples to handle wrapping better
+        ex_row = ttk.Frame(ex_container, style="Dark.TFrame")
         ex_row.pack(fill='x')
-
-        for preset in self.lab1_presets:
+        
+        # Make example buttons green
+        for idx, preset in enumerate(self.lab1_presets):
             lbl = preset[0]
-            ttk.Button(ex_row, text=lbl,
-                       command=lambda p=preset: self.lab1_load_preset(p)
-                       ).pack(side='left', padx=4)
+            btn = ttk.Button(ex_row, text=lbl, style="Green.TButton",
+                            command=lambda p=preset: self.lab1_load_preset(p))
+            btn.pack(side='left', padx=5, pady=3)
 
         # ---- Status / info label ----
         self.lab1_desc = ttk.Label(frame, text="Set parameters above and choose a plot type.",
-                                   anchor='w', foreground="gray")
-        self.lab1_desc.pack(fill='x', padx=5, pady=(0, 3))
+                                anchor='w', foreground="#888888", style="Dark.TLabel")
+        self.lab1_desc.pack(fill='x', padx=5, pady=(0, 5))
 
         # ---- Matplotlib canvas ----
-        self.lab1_fig = Figure(figsize=(10, 5), dpi=80)
+        self.lab1_fig = Figure(figsize=(10, 5), dpi=80, facecolor="#2d2d2d")
         self.lab1_canvas = FigureCanvasTkAgg(self.lab1_fig, master=frame)
         self.lab1_canvas.get_tk_widget().pack(fill='both', expand=True)
+        
+        # Configure figure background
+        self.lab1_fig.patch.set_facecolor('#2d2d2d')
 
-    # ---------- helpers ----------
     def lab1_delete(self):
         self.lab1_fig.clear()
+        self.lab1_fig.patch.set_facecolor('#2d2d2d')
         self.lab1_canvas.draw()
         self.lab1_desc.config(text="Set parameters above and choose a plot type.", foreground="gray")
 
@@ -306,142 +510,179 @@ class DSPMasterProgram:
         # Nyquist check
         nyquist_ok = fs >= 2 * f
         nyquist_msg = (f"✅ Nyquist satisfied  (fs={fs:.0f} ≥ 2f={2*f:.0f})"
-                       if nyquist_ok else
-                       f"⚠️  ALIASING!  Nyquist violated  (fs={fs:.0f} < 2f={2*f:.0f})")
+                    if nyquist_ok else
+                    f"⚠️  ALIASING!  Nyquist violated  (fs={fs:.0f} < 2f={2*f:.0f})")
         alias_f = abs(f - fs) if not nyquist_ok else None
 
         self.lab1_fig.clear()
+        self.lab1_fig.patch.set_facecolor('#2d2d2d')
 
         if mode == "continuous":
             ax = self.lab1_fig.add_subplot(111)
-            ax.plot(t_cont, x_cont, 'b-', linewidth=2)
-            ax.set_title(f"{sig} Signal  —  f = {f} Hz,  A = {amp},  Duration = {dur} s")
-            ax.set_xlabel("Time (s)")
-            ax.set_ylabel("Amplitude")
+            ax.set_facecolor('#3c3c3c')
+            ax.plot(t_cont, x_cont, '#4caf50', linewidth=2)
+            ax.set_title(f"{sig} Signal  —  f = {f} Hz,  A = {amp},  Duration = {dur} s", color='white')
+            ax.set_xlabel("Time (s)", color='white')
+            ax.set_ylabel("Amplitude", color='white')
+            ax.tick_params(colors='white')
             ax.grid(True, alpha=0.3)
+            for spine in ax.spines.values():
+                spine.set_color('white')
             info = f"Continuous {sig.lower()} wave | f={f} Hz | A={amp} | duration={dur}s"
 
         elif mode == "sampled":
             ax = self.lab1_fig.add_subplot(111)
-            ax.stem(t_samp, x_samp, linefmt='r-', markerfmt='go', basefmt='b')
+            ax.set_facecolor('#3c3c3c')
+            markerline, stemlines, baseline = ax.stem(t_samp, x_samp, linefmt='#4caf50', markerfmt='go', basefmt='#2d2d2d')
+            plt.setp(stemlines, color='#4caf50', linewidth=2)
+            plt.setp(markerline, color='#4caf50', markersize=6)
             title = f"Sampled {sig}  —  f={f} Hz  @  fs={fs:.0f} Hz"
             if not nyquist_ok:
                 title = "⚠️  " + title + "  (ALIASING)"
-            ax.set_title(title)
-            ax.set_xlabel("Time (s)")
-            ax.set_ylabel("Amplitude")
+            ax.set_title(title, color='white')
+            ax.set_xlabel("Time (s)", color='white')
+            ax.set_ylabel("Amplitude", color='white')
+            ax.tick_params(colors='white')
             ax.grid(True, alpha=0.3)
+            for spine in ax.spines.values():
+                spine.set_color('white')
             info = nyquist_msg
             if alias_f:
                 info += f"  |  Alias freq ≈ {alias_f:.0f} Hz"
 
         else:  # both
             ax = self.lab1_fig.add_subplot(111)
-            ax.plot(t_cont, x_cont, 'b-', linewidth=2, label="Continuous")
-            ax.stem(t_samp, x_samp, linefmt='r-', markerfmt='go', basefmt='b',
+            ax.set_facecolor('#3c3c3c')
+            ax.plot(t_cont, x_cont, '#4caf50', linewidth=2, label="Continuous")
+            markerline, stemlines, baseline = ax.stem(t_samp, x_samp, linefmt='#ff6b6b', markerfmt='ro', basefmt='#2d2d2d',
                     label=f"Sampled (fs={fs:.0f} Hz)")
+            plt.setp(stemlines, color='#ff6b6b', linewidth=2)
+            plt.setp(markerline, color='#ff6b6b', markersize=6)
             title = f"{sig}  f={f} Hz  |  fs={fs:.0f} Hz"
             if not nyquist_ok:
                 title = "⚠️  " + title + "  — ALIASING"
-            ax.set_title(title)
-            ax.set_xlabel("Time (s)")
-            ax.set_ylabel("Amplitude")
-            ax.legend()
+            ax.set_title(title, color='white')
+            ax.set_xlabel("Time (s)", color='white')
+            ax.set_ylabel("Amplitude", color='white')
+            ax.tick_params(colors='white')
+            ax.legend(facecolor='#3c3c3c', edgecolor='white', labelcolor='white')
             ax.grid(True, alpha=0.3)
+            for spine in ax.spines.values():
+                spine.set_color('white')
             info = nyquist_msg
             if alias_f:
                 info += f"  |  Alias freq ≈ {alias_f:.0f} Hz"
 
         self.lab1_fig.tight_layout()
         self.lab1_canvas.draw()
-        color = "green" if (mode == "continuous" or nyquist_ok) else "red"
+        color = "#4caf50" if (mode == "continuous" or nyquist_ok) else "#ff6b6b"
         self.lab1_desc.config(text=info, foreground=color)
-        
 
     # ==================== TAB 1: IMAGE PROCESSING ====================
     def create_image_processing_tab(self):
-        frame = ttk.Frame(self.notebook, padding="10")
-        self.notebook.add(frame, text="Image Processing (Lab 2)")
-
+        # Register dark theme styles first
+        style = ttk.Style()
+        
+        # Configure styles with correct ttk naming conventions
+        style.configure("Dark.TFrame", background="#2d2d2d")
+        style.configure("Dark.TLabelframe", background="#2d2d2d", foreground="white")
+        style.configure("Dark.TLabelframe.Label", background="#2d2d2d", foreground="white")
+        style.configure("Dark.TLabel", background="#2d2d2d", foreground="white")
+        style.configure("Dark.TEntry", fieldbackground="#3c3c3c", foreground="white", 
+                    background="#3c3c3c", insertcolor="white")
+        style.configure("Dark.TCombobox", fieldbackground="#3c3c3c", foreground="white",
+                    background="#3c3c3c", selectbackground="#505050")
+        style.map("Dark.TCombobox",
+                fieldbackground=[('readonly', '#3c3c3c')],
+                selectbackground=[('readonly', '#505050')])
+        
+        frame = ttk.Frame(self.notebook, padding="10", style="Dark.TFrame")
+        self.notebook.add(frame, text="🖼️ Lab 2: Imaging")
+        
         # ── Top: filter buttons ──────────────────────────────────────────
-        control_frame = ttk.LabelFrame(frame, text="Image Processing Controls", padding="10")
-        control_frame.pack(fill='x', pady=(0, 4))
-
-        ttk.Button(control_frame, text="Load Image",
-                   command=self.load_image).pack(side='left', padx=5)
-        ttk.Button(control_frame, text="Grayscale",
-                   command=lambda: self.select_filter("Grayscale")).pack(side='left', padx=5)
-        ttk.Button(control_frame, text="Binary (B&W)",
-                   command=lambda: self.select_filter("Binary")).pack(side='left', padx=5)
-        ttk.Button(control_frame, text="Median Blur",
-                   command=lambda: self.select_filter("MedianBlur")).pack(side='left', padx=5)
-        ttk.Button(control_frame, text="Laplacian",
-                   command=lambda: self.select_filter("Laplacian")).pack(side='left', padx=5)
-        tk.Button(control_frame, text="🗑️ Delete", command=self.delete_image,
-                  fg="red", bg="#f0f0f0", relief='raised', cursor="hand2").pack(side='left', padx=5)
-
+        control_frame = ttk.LabelFrame(frame, text="Image Processing Controls", padding="10", style="Dark.TLabelframe")
+        control_frame.pack(fill='x', pady=(0, 8))
+        
+        # Button style with #4caf50
+        button_style = {
+            'bg': '#4caf50',
+            'fg': 'white',
+            'relief': 'raised',
+            'cursor': 'hand2',
+            'font': ('Helvetica', 9, 'bold'),
+            'padx': 12,
+            'pady': 5
+        }
+        
+        tk.Button(control_frame, text="Load Image", command=self.load_image, **button_style).pack(side='left', padx=6)
+        tk.Button(control_frame, text="Grayscale", command=lambda: self.select_filter("Grayscale"), **button_style).pack(side='left', padx=6)
+        tk.Button(control_frame, text="Binary (B&W)", command=lambda: self.select_filter("Binary"), **button_style).pack(side='left', padx=6)
+        tk.Button(control_frame, text="Median Blur", command=lambda: self.select_filter("MedianBlur"), **button_style).pack(side='left', padx=6)
+        tk.Button(control_frame, text="Laplacian", command=lambda: self.select_filter("Laplacian"), **button_style).pack(side='left', padx=6)
+        tk.Button(control_frame, text="🗑️ Delete", command=self.delete_image, bg="#f44336", fg="white", relief='raised', cursor="hand2", font=('Helvetica', 9, 'bold'), padx=12, pady=5).pack(side='left', padx=6)
+        
         # ── Dynamic filter options panel (swaps contents per filter) ─────
-        self.filter_options_frame = ttk.LabelFrame(
-            frame, text="Filter Options  —  select a filter above", padding="8")
-        self.filter_options_frame.pack(fill='x', pady=(0, 4))
-
+        self.filter_options_frame = ttk.LabelFrame(frame, text="Filter Options  —  select a filter above", padding="10", style="Dark.TLabelframe")
+        self.filter_options_frame.pack(fill='x', pady=(0, 8))
+        
         # Placeholder label shown when no filter is selected
         self.filter_placeholder = ttk.Label(
             self.filter_options_frame,
             text="No filter selected. Click a filter button to see its options.",
-            foreground="gray")
+            foreground="#888888",
+            style="Dark.TLabel")
         self.filter_placeholder.pack(anchor='w')
-
+        
         # ── Split-screen centred ─────────────────────────────────────────
         outer = ttk.Frame(frame)
         outer.pack(fill='both', expand=True)
-
+        
         self.img_split_frame = ttk.Frame(outer)
         self.img_split_frame.place(relx=0.5, rely=0.5, anchor='center')
-
+        
         # Left — Original
-        left_panel = ttk.Frame(self.img_split_frame, relief='groove', borderwidth=2)
-        left_panel.pack(side='left', padx=10, pady=10)
-        ttk.Label(left_panel, text="Original Image",
-                  font=("Helvetica", 10, "bold")).pack(pady=(6, 2))
+        left_panel = tk.Frame(self.img_split_frame, relief='groove', borderwidth=2, bg="#2d2d2d")
+        left_panel.pack(side='left', padx=12, pady=12)
+        tk.Label(left_panel, text="Original Image", font=("Helvetica", 10, "bold"), bg="#2d2d2d", fg="white").pack(pady=(6, 8))
         self.img_original_label = ttk.Label(
             left_panel, text="Load an image to begin",
-            background="#dcdcdc", width=42, anchor='center')
-        self.img_original_label.pack(padx=8, pady=(0, 8), ipadx=4, ipady=4)
-
+            background="#3d3d3d", width=42, anchor='center',
+            foreground="#cccccc")
+        self.img_original_label.pack(padx=10, pady=(0, 10), ipadx=6, ipady=6)
+        
         # Divider
         ttk.Separator(self.img_split_frame, orient='vertical').pack(
-            side='left', fill='y', pady=10)
-
+            side='left', fill='y', pady=12)
+        
         # Right — Processed
-        right_panel = ttk.Frame(self.img_split_frame, relief='groove', borderwidth=2)
-        right_panel.pack(side='left', padx=10, pady=10)
-        ttk.Label(right_panel, text="Processed Image",
-                  font=("Helvetica", 10, "bold")).pack(pady=(6, 2))
+        right_panel = tk.Frame(self.img_split_frame, relief='groove', borderwidth=2, bg="#2d2d2d")
+        right_panel.pack(side='left', padx=12, pady=12)
+        tk.Label(right_panel, text="Processed Image", font=("Helvetica", 10, "bold"), bg="#2d2d2d", fg="white").pack(pady=(6, 8))
         self.img_processed_label = ttk.Label(
             right_panel, text="Apply a filter to see result",
-            background="#dcdcdc", width=42, anchor='center')
-        self.img_processed_label.pack(padx=8, pady=(0, 8), ipadx=4, ipady=4)
-
+            background="#3d3d3d", width=42, anchor='center',
+            foreground="#cccccc")
+        self.img_processed_label.pack(padx=10, pady=(0, 10), ipadx=6, ipady=6)
+        
         # Status bar
-        self.img_status = ttk.Label(frame, text="", anchor='center', foreground="gray")
-        self.img_status.pack(fill='x', pady=(0, 4))
-
+        self.img_status = ttk.Label(frame, text="", anchor='center', foreground="#888888", style="Dark.TLabel")
+        self.img_status.pack(fill='x', pady=(0, 6))
+        
         self.original_image   = None
         self.current_image    = None
         self.current_filter   = None
-
+        
         # ── Per-filter tk variables (created once, reused) ───────────────
         # Grayscale
         self.gs_method = tk.StringVar(value="Weighted (Standard)")
-
+        
         # Binary
         self.bin_thresh    = tk.IntVar(value=127)
         self.bin_type      = tk.StringVar(value="Binary")
-
+        
         # Median Blur
         self.blur_ksize    = tk.IntVar(value=9)
-
+        
         # Laplacian
         self.lap_ksize     = tk.IntVar(value=1)
         self.lap_scale     = tk.DoubleVar(value=1.0)
@@ -451,13 +692,13 @@ class DSPMasterProgram:
     def select_filter(self, filter_name):
         """Show the correct options panel for filter_name and apply the filter."""
         self.current_filter = filter_name
-
+        
         # Destroy all current children of the options frame
         for w in self.filter_options_frame.winfo_children():
             w.destroy()
-
+        
         self.filter_options_frame.config(text=f"Filter Options  —  {filter_name}")
-
+        
         if filter_name == "Grayscale":
             self._build_grayscale_options()
         elif filter_name == "Binary":
@@ -466,73 +707,76 @@ class DSPMasterProgram:
             self._build_blur_options()
         elif filter_name == "Laplacian":
             self._build_laplacian_options()
-
+        
         # Apply immediately with current settings
         self.apply_current_filter()
 
     def _apply_btn(self, parent):
         """Reusable Apply button."""
-        ttk.Button(parent, text="▶ Apply",
-                   command=self.apply_current_filter).pack(side='left', padx=10)
+        btn = tk.Button(parent, text="▶ Apply", command=self.apply_current_filter,
+                        bg="#4caf50", fg="white", relief='raised', cursor="hand2",
+                        font=('Helvetica', 9, 'bold'), padx=15, pady=5)
+        btn.pack(side='left', padx=12)
 
     def _build_grayscale_options(self):
         f = self.filter_options_frame
-        ttk.Label(f, text="Method:").pack(side='left', padx=(0, 4))
-        cb = ttk.Combobox(f, textvariable=self.gs_method, width=20, state='readonly',
-                          values=["Weighted (Standard)", "Average", "Luminosity"])
-        cb.pack(side='left', padx=(0, 10))
+        
+        tk.Label(f, text="Method:", bg="#2d2d2d", fg="white", font=('Helvetica', 9)).pack(side='left', padx=(0, 8))
+        cb = ttk.Combobox(f, textvariable=self.gs_method, width=22, state='readonly',
+                        values=["Weighted (Standard)", "Average", "Luminosity"])
+        cb.pack(side='left', padx=(0, 12))
         self._apply_btn(f)
-        ttk.Label(f, text="Weighted=standard OpenCV  |  Average=(R+G+B)/3  |  Luminosity=perceived brightness",
-                  foreground="gray").pack(side='left', padx=10)
+        tk.Label(f, text="Weighted=standard OpenCV  |  Average=(R+G+B)/3  |  Luminosity=perceived brightness",
+                bg="#2d2d2d", fg="#888888", font=('Helvetica', 8)).pack(side='left', padx=12)
 
     def _build_binary_options(self):
         f = self.filter_options_frame
-
-        ttk.Label(f, text="Threshold (0–255):").pack(side='left', padx=(0, 4))
-        ttk.Spinbox(f, from_=0, to=255, textvariable=self.bin_thresh,
-                    width=5).pack(side='left', padx=(0, 10))
-
-        ttk.Label(f, text="Type:").pack(side='left', padx=(0, 4))
-        ttk.Combobox(f, textvariable=self.bin_type, width=18, state='readonly',
-                     values=["Binary", "Binary Inverted", "Truncate", "To-Zero"]
-                     ).pack(side='left', padx=(0, 10))
-
+        
+        tk.Label(f, text="Threshold (0–255):", bg="#2d2d2d", fg="white", font=('Helvetica', 9)).pack(side='left', padx=(0, 8))
+        tk.Spinbox(f, from_=0, to=255, textvariable=self.bin_thresh,
+                width=6, bg="white", fg="black", font=('Helvetica', 9)).pack(side='left', padx=(0, 12))
+        
+        tk.Label(f, text="Type:", bg="#2d2d2d", fg="white", font=('Helvetica', 9)).pack(side='left', padx=(0, 8))
+        ttk.Combobox(f, textvariable=self.bin_type, width=20, state='readonly',
+                    values=["Binary", "Binary Inverted", "Truncate", "To-Zero"]
+                    ).pack(side='left', padx=(0, 12))
+        
         self._apply_btn(f)
-        ttk.Label(f, text="Lower threshold = more white pixels",
-                  foreground="gray").pack(side='left', padx=10)
+        tk.Label(f, text="Lower threshold = more white pixels",
+                bg="#2d2d2d", fg="#888888", font=('Helvetica', 8)).pack(side='left', padx=12)
 
     def _build_blur_options(self):
         f = self.filter_options_frame
-
-        ttk.Label(f, text="Kernel Size (odd):").pack(side='left', padx=(0, 4))
-        ttk.Combobox(f, textvariable=self.blur_ksize, width=6, state='readonly',
-                     values=[3, 5, 7, 9, 11, 13, 15]
-                     ).pack(side='left', padx=(0, 10))
-
+        
+        tk.Label(f, text="Kernel Size (odd):", bg="#2d2d2d", fg="white", font=('Helvetica', 9)).pack(side='left', padx=(0, 8))
+        ttk.Combobox(f, textvariable=self.blur_ksize, width=8, state='readonly',
+                    values=[3, 5, 7, 9, 11, 13, 15]
+                    ).pack(side='left', padx=(0, 12))
+        
         self._apply_btn(f)
-        ttk.Label(f, text="Larger kernel = stronger blur / more noise removal",
-                  foreground="gray").pack(side='left', padx=10)
+        tk.Label(f, text="Larger kernel = stronger blur / more noise removal",
+                bg="#2d2d2d", fg="#888888", font=('Helvetica', 8)).pack(side='left', padx=12)
 
     def _build_laplacian_options(self):
         f = self.filter_options_frame
-
-        ttk.Label(f, text="ksize:").pack(side='left', padx=(0, 4))
-        ttk.Combobox(f, textvariable=self.lap_ksize, width=4, state='readonly',
-                     values=[1, 3, 5, 7]).pack(side='left', padx=(0, 10))
-
-        ttk.Label(f, text="Scale:").pack(side='left', padx=(0, 4))
-        ttk.Spinbox(f, from_=0.1, to=10.0, increment=0.1,
-                    textvariable=self.lap_scale, width=5, format="%.1f"
-                    ).pack(side='left', padx=(0, 10))
-
-        ttk.Label(f, text="Delta:").pack(side='left', padx=(0, 4))
-        ttk.Spinbox(f, from_=-128, to=128, increment=1,
-                    textvariable=self.lap_delta, width=5
-                    ).pack(side='left', padx=(0, 10))
-
+        
+        tk.Label(f, text="ksize:", bg="#2d2d2d", fg="white", font=('Helvetica', 9)).pack(side='left', padx=(0, 8))
+        ttk.Combobox(f, textvariable=self.lap_ksize, width=6, state='readonly',
+                    values=[1, 3, 5, 7]).pack(side='left', padx=(0, 12))
+        
+        tk.Label(f, text="Scale:", bg="#2d2d2d", fg="white", font=('Helvetica', 9)).pack(side='left', padx=(0, 8))
+        tk.Spinbox(f, from_=0.1, to=10.0, increment=0.1,
+                textvariable=self.lap_scale, width=6, format="%.1f",
+                bg="white", fg="black", font=('Helvetica', 9)).pack(side='left', padx=(0, 12))
+        
+        tk.Label(f, text="Delta:", bg="#2d2d2d", fg="white", font=('Helvetica', 9)).pack(side='left', padx=(0, 8))
+        tk.Spinbox(f, from_=-128, to=128, increment=1,
+                textvariable=self.lap_delta, width=6,
+                bg="white", fg="black", font=('Helvetica', 9)).pack(side='left', padx=(0, 12))
+        
         self._apply_btn(f)
-        ttk.Label(f, text="ksize=1 → sharp edges  |  larger ksize → broader edge detection",
-                  foreground="gray").pack(side='left', padx=10)
+        tk.Label(f, text="ksize=1 → sharp edges  |  larger ksize → broader edge detection",
+                bg="#2d2d2d", fg="#888888", font=('Helvetica', 8)).pack(side='left', padx=12)
 
     # ── Filter application ───────────────────────────────────────────────
     def apply_current_filter(self):
@@ -563,8 +807,8 @@ class DSPMasterProgram:
             w.destroy()
         self.filter_options_frame.config(text="Filter Options  —  select a filter above")
         ttk.Label(self.filter_options_frame,
-                  text="No filter selected. Click a filter button to see its options.",
-                  foreground="gray").pack(anchor='w')
+                text="No filter selected. Click a filter button to see its options.",
+                foreground="#888888", style="Dark.TLabel").pack(anchor='w')
         self.current_filter = None
         messagebox.showinfo("Success", "Image data cleared!")
 
@@ -580,13 +824,13 @@ class DSPMasterProgram:
         self.img_original_label.image = photo
         self.img_processed_label.config(image='', text="Apply a filter to see result")
         self.img_status.config(
-            text=f"Loaded: {os.path.basename(filepath)}", foreground="gray")
+            text=f"Loaded: {os.path.basename(filepath)}", foreground="#888888")
 
     def display_processed(self, bgr, label_text):
         photo = self._to_photoimage(bgr)
         self.img_processed_label.config(image=photo, text="")
         self.img_processed_label.image = photo
-        self.img_status.config(text=f"Filter applied: {label_text}", foreground="blue")
+        self.img_status.config(text=f"Filter applied: {label_text}", foreground="#4caf50")
 
     def apply_grayscale(self):
         if self.original_image is None:
@@ -602,7 +846,7 @@ class DSPMasterProgram:
                 gray = cv2.cvtColor(self.original_image, cv2.COLOR_BGR2GRAY)
             self.current_image = gray
             self.display_processed(cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR),
-                                   f"Grayscale ({method})")
+                                f"Grayscale ({method})")
         except (ValueError, TypeError) as e:
             messagebox.showerror("Type Error", f"Grayscale parameter error:\n{e}")
 
@@ -624,7 +868,7 @@ class DSPMasterProgram:
             _, bw = cv2.threshold(gray, thresh, 255, t)
             self.current_image = bw
             self.display_processed(cv2.cvtColor(bw, cv2.COLOR_GRAY2BGR),
-                                   f"Binary ({self.bin_type.get()}, thresh={thresh})")
+                                f"Binary ({self.bin_type.get()}, thresh={thresh})")
         except (ValueError, TypeError) as e:
             messagebox.showerror("Type Error", f"Binary parameter error:\n{e}")
 
@@ -639,7 +883,7 @@ class DSPMasterProgram:
             blurred = cv2.medianBlur(gray, k)
             self.current_image = blurred
             self.display_processed(cv2.cvtColor(blurred, cv2.COLOR_GRAY2BGR),
-                                   f"Median Blur (ksize={k})")
+                                f"Median Blur (ksize={k})")
         except (ValueError, TypeError) as e:
             messagebox.showerror("Type Error", f"Median Blur parameter error:\n{e}")
 
@@ -659,125 +903,183 @@ class DSPMasterProgram:
             lap8 = np.uint8(np.clip(np.absolute(lap), 0, 255))
             self.current_image = lap8
             self.display_processed(cv2.cvtColor(lap8, cv2.COLOR_GRAY2BGR),
-                                   f"Laplacian (ksize={k}, scale={scale}, delta={delta})")
+                                f"Laplacian (ksize={k}, scale={scale}, delta={delta})")
         except (ValueError, TypeError) as e:
             messagebox.showerror("Type Error", f"Laplacian parameter error:\n{e}")
-
+            
     # ==================== TAB 2: AUDIO PROCESSING (ENHANCED) ====================
     def create_audio_processing_tab(self):
-        frame = ttk.Frame(self.notebook, padding="10")
-        self.notebook.add(frame, text="Audio Processing (Lab 3)")
+        # Register dark theme styles (if not already registered)
+        style = ttk.Style()
         
+        # Configure styles with correct ttk naming conventions
+        style.configure("Dark.TFrame", background="#2d2d2d")
+        style.configure("Dark.TLabelframe", background="#2d2d2d", foreground="white")
+        style.configure("Dark.TLabelframe.Label", background="#2d2d2d", foreground="white")
+        style.configure("Dark.TLabel", background="#2d2d2d", foreground="white")
+        style.configure("Dark.TEntry", fieldbackground="#3c3c3c", foreground="white", 
+                    background="#3c3c3c", insertcolor="white")
+        style.configure("Dark.TCombobox", fieldbackground="#3c3c3c", foreground="white",
+                    background="#3c3c3c", selectbackground="#505050")
+        style.map("Dark.TCombobox",
+                fieldbackground=[('readonly', '#3c3c3c')],
+                selectbackground=[('readonly', '#505050')])
+        
+        # Configure button style for green buttons
+        style.configure("Green.TButton", 
+                    background="#4caf50", 
+                    foreground="white",
+                    font=("Segoe UI", 9, "bold"),
+                    padding=(12, 6), 
+                    borderwidth=0, 
+                    focusthickness=0)
+        style.map("Green.TButton",
+                background=[('active', '#45a049'), ('pressed', '#3d8b40')],
+                foreground=[('active', 'white'), ('pressed', 'white')])
+        
+        # Configure button style for red buttons
+        style.configure("Red.TButton", 
+                    background="#f44336", 
+                    foreground="white",
+                    font=("Segoe UI", 9, "bold"),
+                    padding=(12, 6), 
+                    borderwidth=0, 
+                    focusthickness=0)
+        style.map("Red.TButton",
+                background=[('active', '#da190b'), ('pressed', '#c62828')],
+                foreground=[('active', 'white'), ('pressed', 'white')])
+
+        frame = ttk.Frame(self.notebook, padding="10", style="Dark.TFrame")
+        self.notebook.add(frame, text="🔊 Lab 3: Audio")
+
         # ── Internal state (MUST come first) ──────────────────────────────
         self.audio_data = None
         self.audio_fs = None
         self.filtered_audio = None
-        
+
         # ── Filter parameters (tk variables) ─────────────────────────────
         self.audio_cutoff = tk.DoubleVar(value=1000.0)
         self.audio_cutoff_low = tk.DoubleVar(value=1000.0)
         self.audio_cutoff_high = tk.DoubleVar(value=3000.0)
         self.audio_filter_order = tk.IntVar(value=5)
         self.audio_design_method = tk.StringVar(value="Butterworth")
-        
+
         # ── Top: File Loading ────────────────────────────────────────────
-        control_frame = ttk.LabelFrame(frame, text="Audio Processing Controls", padding="10")
+        control_frame = ttk.LabelFrame(frame, text="Audio Processing Controls", padding="10", style="Dark.TLabelframe")
         control_frame.pack(fill='x', pady=10)
-        
-        ttk.Button(control_frame, text="Load Audio File", command=self.load_audio).pack(side='left', padx=5)
-        
+
+        # Use green button for loading
+        ttk.Button(control_frame, text="📂 Load Audio File", style="Green.TButton",
+                command=self.load_audio).pack(side='left', padx=5)
+
         # ── Filter Type Selection ────────────────────────────────────────
-        filter_type_frame = ttk.Frame(control_frame)
+        filter_type_frame = ttk.Frame(control_frame, style="Dark.TFrame")
         filter_type_frame.pack(side='left', padx=20)
-        
-        ttk.Label(filter_type_frame, text="Filter Type:").pack(side='left', padx=5)
+
+        ttk.Label(filter_type_frame, text="Filter Type:", style="Dark.TLabel").pack(side='left', padx=5)
         self.audio_filter_type = ttk.Combobox(filter_type_frame, width=15, state='readonly',
-                                              values=["Lowpass", "Highpass", "Bandpass", "Bandstop"])
+                                            values=["Lowpass", "Highpass", "Bandpass", "Bandstop"],
+                                            style="Dark.TCombobox")
         self.audio_filter_type.current(0)
         self.audio_filter_type.pack(side='left', padx=5)
-        
-        tk.Button(control_frame, text="🗑️ Delete", command=self.delete_audio,
-                  fg="red", bg="#f0f0f0", relief='raised', cursor="hand2").pack(side='left', padx=5)
-        
+
+        # Red button for delete
+        ttk.Button(control_frame, text="🗑️ Delete", style="Red.TButton",
+                command=self.delete_audio).pack(side='left', padx=5)
+
         # ── Dynamic Filter Options Panel ─────────────────────────────────
         self.audio_options_frame = ttk.LabelFrame(
-            frame, text="Filter Options  —  select a filter type above", padding="8")
+            frame, text="Filter Options  —  select a filter type above", padding="8", style="Dark.TLabelframe")
         self.audio_options_frame.pack(fill='x', pady=(0, 4))
-        
+
         ttk.Label(self.audio_options_frame,
-                  text="Select filter type and configure parameters below.",
-                  foreground="gray").pack(anchor='w')
-        
+                text="Select filter type and configure parameters below.",
+                foreground="#888888", style="Dark.TLabel").pack(anchor='w')
+
         # ── Build initial filter options (Lowpass) ──────────────────────
         self.build_audio_filter_options()
-        
+
         # Bind combobox change
         self.audio_filter_type.bind('<<ComboboxSelected>>', lambda e: self.build_audio_filter_options())
-        
+
+        # ── Status / info label ──
+        self.audio_desc = ttk.Label(frame, text="Load an audio file to begin processing.",
+                                    anchor='w', foreground="#888888", style="Dark.TLabel")
+        self.audio_desc.pack(fill='x', padx=5, pady=(0, 5))
+
         # ── Matplotlib canvas ────────────────────────────────────────────
-        self.audio_fig = Figure(figsize=(10, 5), dpi=80)
+        self.audio_fig = Figure(figsize=(10, 5), dpi=80, facecolor="#2d2d2d")
         self.audio_canvas = FigureCanvasTkAgg(self.audio_fig, master=frame)
         self.audio_canvas.get_tk_widget().pack(fill='both', expand=True)
-    
+        
+        # Configure figure background
+        self.audio_fig.patch.set_facecolor('#2d2d2d')
+
     def build_audio_filter_options(self):
         """Dynamically build filter options panel based on selected filter type."""
         for w in self.audio_options_frame.winfo_children():
             w.destroy()
-        
+
         filter_type = self.audio_filter_type.get()
         self.audio_options_frame.config(text=f"Filter Options  —  {filter_type}")
-        
-        common_frame = ttk.Frame(self.audio_options_frame)
+
+        common_frame = ttk.Frame(self.audio_options_frame, style="Dark.TFrame")
         common_frame.pack(fill='x', pady=5)
-        
-        ttk.Label(common_frame, text="Filter Design Method:").pack(side='left', padx=5)
-        ttk.Combobox(common_frame, textvariable=self.audio_design_method, width=15, state='readonly',
-                     values=["Butterworth", "Chebyshev I", "Bessel"]
-                     ).pack(side='left', padx=5)
-        
-        ttk.Label(common_frame, text="Filter Order (1-10):").pack(side='left', padx=5)
-        ttk.Spinbox(common_frame, from_=1, to=10, textvariable=self.audio_filter_order,
-                    width=5).pack(side='left', padx=5)
-        
-        options_frame = ttk.Frame(self.audio_options_frame)
+
+        ttk.Label(common_frame, text="Filter Design Method:", style="Dark.TLabel").pack(side='left', padx=5)
+        design_combo = ttk.Combobox(common_frame, textvariable=self.audio_design_method, width=15, state='readonly',
+                                    values=["Butterworth", "Chebyshev I", "Bessel"],
+                                    style="Dark.TCombobox")
+        design_combo.pack(side='left', padx=5)
+
+        ttk.Label(common_frame, text="Filter Order (1-10):", style="Dark.TLabel").pack(side='left', padx=5)
+        order_spin = ttk.Spinbox(common_frame, from_=1, to=10, textvariable=self.audio_filter_order,
+                                width=5, style="Dark.TEntry")
+        order_spin.pack(side='left', padx=5)
+
+        options_frame = ttk.Frame(self.audio_options_frame, style="Dark.TFrame")
         options_frame.pack(fill='x', pady=5)
-        
+
         if filter_type in ["Lowpass", "Highpass"]:
-            ttk.Label(options_frame, text="Cutoff Frequency (Hz):").pack(side='left', padx=5)
-            ttk.Spinbox(options_frame, from_=1, to=22050, increment=100,
-                        textvariable=self.audio_cutoff, width=10
-                        ).pack(side='left', padx=5)
-            ttk.Label(options_frame, text="(Nyquist check enabled)", foreground="gray").pack(side='left', padx=5)
-        
+            ttk.Label(options_frame, text="Cutoff Frequency (Hz):", style="Dark.TLabel").pack(side='left', padx=5)
+            cutoff_spin = ttk.Spinbox(options_frame, from_=1, to=22050, increment=100,
+                                    textvariable=self.audio_cutoff, width=10, style="Dark.TEntry")
+            cutoff_spin.pack(side='left', padx=5)
+            ttk.Label(options_frame, text="(Nyquist check enabled)", foreground="#888888", 
+                    style="Dark.TLabel").pack(side='left', padx=5)
+
         elif filter_type in ["Bandpass", "Bandstop"]:
-            ttk.Label(options_frame, text="Low Cutoff (Hz):").pack(side='left', padx=5)
-            ttk.Spinbox(options_frame, from_=1, to=22050, increment=100,
-                        textvariable=self.audio_cutoff_low, width=10
-                        ).pack(side='left', padx=5)
-            
-            ttk.Label(options_frame, text="High Cutoff (Hz):").pack(side='left', padx=5)
-            ttk.Spinbox(options_frame, from_=1, to=22050, increment=100,
-                        textvariable=self.audio_cutoff_high, width=10
-                        ).pack(side='left', padx=5)
-        
-        ttk.Button(options_frame, text="▶ Apply Filter",
-                   command=self.apply_audio_filter).pack(side='left', padx=10)
-        
+            ttk.Label(options_frame, text="Low Cutoff (Hz):", style="Dark.TLabel").pack(side='left', padx=5)
+            low_spin = ttk.Spinbox(options_frame, from_=1, to=22050, increment=100,
+                                textvariable=self.audio_cutoff_low, width=10, style="Dark.TEntry")
+            low_spin.pack(side='left', padx=5)
+
+            ttk.Label(options_frame, text="High Cutoff (Hz):", style="Dark.TLabel").pack(side='left', padx=5)
+            high_spin = ttk.Spinbox(options_frame, from_=1, to=22050, increment=100,
+                                textvariable=self.audio_cutoff_high, width=10, style="Dark.TEntry")
+            high_spin.pack(side='left', padx=5)
+
+        ttk.Button(options_frame, text="▶ Apply Filter", style="Green.TButton",
+                command=self.apply_audio_filter).pack(side='left', padx=10)
+
         info_text = (
             f"Type: {filter_type} | "
             f"Method: {self.audio_design_method.get()} | "
             f"Order: {self.audio_filter_order.get()}"
         )
-        ttk.Label(self.audio_options_frame, text=info_text, foreground="gray").pack(anchor='w', padx=5)
-    
+        ttk.Label(self.audio_options_frame, text=info_text, foreground="#888888", 
+                style="Dark.TLabel").pack(anchor='w', padx=5)
+
     def delete_audio(self):
         self.audio_data = None
         self.audio_fs = None
         self.filtered_audio = None
         self.audio_fig.clear()
+        self.audio_fig.patch.set_facecolor('#2d2d2d')
         self.audio_canvas.draw()
+        self.audio_desc.config(text="Audio data cleared. Load a new file to begin.", foreground="#888888")
         messagebox.showinfo("Success", "Audio data cleared!")
-    
+
     def load_audio(self):
         filepath = filedialog.askopenfilename(
             filetypes=[("WAV files", "*.wav"), ("All files", "*.*")]
@@ -788,26 +1090,28 @@ class DSPMasterProgram:
                 if self.audio_data.ndim > 1:
                     self.audio_data = np.mean(self.audio_data, axis=1)
                 self.plot_audio(self.audio_data, "Original Audio Signal")
+                self.audio_desc.config(text=f"Loaded: {os.path.basename(filepath)} | fs={self.audio_fs} Hz", 
+                                    foreground="#4caf50")
                 messagebox.showinfo("Success",
                     f"Loaded: {os.path.basename(filepath)}\nSample Rate: {self.audio_fs} Hz")
             except Exception as e:
                 messagebox.showerror("Error", f"Could not load audio: {str(e)}")
-    
+
     def apply_audio_filter(self):
         """Apply the selected filter with customizable parameters."""
         if self.audio_data is None:
             messagebox.showwarning("Warning", "Please load an audio file first")
             return
-        
+
         try:
             filter_type = self.audio_filter_type.get()
             design_method = self.audio_design_method.get()
             order = int(self.audio_filter_order.get())
             nyq = 0.5 * self.audio_fs
-            
+
             if order < 1 or order > 10:
                 raise ValueError("Filter order must be between 1 and 10.")
-            
+
             if filter_type == "Lowpass":
                 cutoff = float(self.audio_cutoff.get())
                 if cutoff >= nyq:
@@ -815,7 +1119,7 @@ class DSPMasterProgram:
                 norm_cutoff = cutoff / nyq
                 b, a = self._design_filter(design_method, order, norm_cutoff, 'low')
                 title = f"Lowpass Filtered ({cutoff} Hz)"
-            
+
             elif filter_type == "Highpass":
                 cutoff = float(self.audio_cutoff.get())
                 if cutoff >= nyq:
@@ -823,7 +1127,7 @@ class DSPMasterProgram:
                 norm_cutoff = cutoff / nyq
                 b, a = self._design_filter(design_method, order, norm_cutoff, 'high')
                 title = f"Highpass Filtered ({cutoff} Hz)"
-            
+
             elif filter_type == "Bandpass":
                 cutoff_low = float(self.audio_cutoff_low.get())
                 cutoff_high = float(self.audio_cutoff_high.get())
@@ -834,7 +1138,7 @@ class DSPMasterProgram:
                 norm_cutoffs = [cutoff_low / nyq, cutoff_high / nyq]
                 b, a = self._design_filter(design_method, order, norm_cutoffs, 'band')
                 title = f"Bandpass Filtered ({cutoff_low}-{cutoff_high} Hz)"
-            
+
             elif filter_type == "Bandstop":
                 cutoff_low = float(self.audio_cutoff_low.get())
                 cutoff_high = float(self.audio_cutoff_high.get())
@@ -845,19 +1149,24 @@ class DSPMasterProgram:
                 norm_cutoffs = [cutoff_low / nyq, cutoff_high / nyq]
                 b, a = self._design_filter(design_method, order, norm_cutoffs, 'bandstop')
                 title = f"Bandstop Filtered ({cutoff_low}-{cutoff_high} Hz)"
-            
+
             self.filtered_audio = lfilter(b, a, self.audio_data)
             self.plot_audio_comparison(self.audio_data, self.filtered_audio, title)
-            
+
             output_file = f"{filter_type.lower()}_filtered.wav"
             sf.write(output_file, self.filtered_audio, self.audio_fs)
+            
+            self.audio_desc.config(text=f"Filter applied: {title} | Saved as {output_file}", 
+                                foreground="#4caf50")
             messagebox.showinfo("Success", f"Filtered audio saved as {output_file}")
-        
+
         except (ValueError, TypeError) as e:
+            self.audio_desc.config(text=f"Error: {str(e)}", foreground="#f44336")
             messagebox.showerror("Error", f"Filter parameter error:\n{str(e)}")
         except Exception as e:
+            self.audio_desc.config(text=f"Unexpected error: {str(e)}", foreground="#f44336")
             messagebox.showerror("Error", f"Unexpected error during filtering:\n{str(e)}")
-    
+
     def _design_filter(self, method, order, cutoff, btype):
         """Design filter using specified method."""
         try:
@@ -871,84 +1180,160 @@ class DSPMasterProgram:
                 raise ValueError(f"Unknown filter design method: {method}")
         except (TypeError, ValueError) as e:
             raise TypeError(f"Filter design error ({method}):\n{str(e)}")
-    
+
     def plot_audio(self, signal, title):
-        """Plot single audio signal."""
+        """Plot single audio signal with dark theme."""
         self.audio_fig.clear()
+        self.audio_fig.patch.set_facecolor('#2d2d2d')
+        
         ax = self.audio_fig.add_subplot(111)
-        ax.plot(signal, linewidth=0.5)
-        ax.set_title(title)
-        ax.set_xlabel("Samples")
-        ax.set_ylabel("Amplitude")
+        ax.set_facecolor('#3c3c3c')
+        ax.plot(signal, linewidth=0.5, color='#4caf50')
+        ax.set_title(title, color='white')
+        ax.set_xlabel("Samples", color='white')
+        ax.set_ylabel("Amplitude", color='white')
+        ax.tick_params(colors='white')
         ax.grid(True, alpha=0.3)
+        
+        for spine in ax.spines.values():
+            spine.set_color('white')
+        
         self.audio_fig.tight_layout()
         self.audio_canvas.draw()
-    
+
     def plot_audio_comparison(self, original, filtered, title):
-        """Plot original vs filtered audio side-by-side."""
+        """Plot original vs filtered audio side-by-side with dark theme."""
         self.audio_fig.clear()
-        
+        self.audio_fig.patch.set_facecolor('#2d2d2d')
+
         ax1 = self.audio_fig.add_subplot(211)
-        ax1.plot(original, linewidth=0.5, color='blue')
-        ax1.set_title("Original Audio Signal")
-        ax1.set_ylabel("Amplitude")
+        ax1.set_facecolor('#3c3c3c')
+        ax1.plot(original, linewidth=0.5, color='#4caf50')
+        ax1.set_title("Original Audio Signal", color='white')
+        ax1.set_ylabel("Amplitude", color='white')
+        ax1.tick_params(colors='white')
         ax1.grid(True, alpha=0.3)
-        
+        for spine in ax1.spines.values():
+            spine.set_color('white')
+
         ax2 = self.audio_fig.add_subplot(212)
-        ax2.plot(filtered, linewidth=0.5, color='green')
-        ax2.set_title(title)
-        ax2.set_xlabel("Samples")
-        ax2.set_ylabel("Amplitude")
+        ax2.set_facecolor('#3c3c3c')
+        ax2.plot(filtered, linewidth=0.5, color='#ff6b6b')
+        ax2.set_title(title, color='white')
+        ax2.set_xlabel("Samples", color='white')
+        ax2.set_ylabel("Amplitude", color='white')
+        ax2.tick_params(colors='white')
         ax2.grid(True, alpha=0.3)
-        
+        for spine in ax2.spines.values():
+            spine.set_color('white')
+
         self.audio_fig.suptitle(
             f"Audio Filtering Comparison  |  fs={self.audio_fs} Hz  |  Order={self.audio_filter_order.get()}",
-            fontsize=11, fontweight='bold')
+            fontsize=11, fontweight='bold', color='white')
         self.audio_fig.tight_layout()
         self.audio_canvas.draw()
-    
-    # ==================== TAB 3: Z-TRANSFORM ====================
+
+# ==================== TAB 3: Z-TRANSFORM ====================
     def create_z_transform_tab(self):
-        frame = ttk.Frame(self.notebook, padding="10")
-        self.notebook.add(frame, text="Z-Transform (Lab 4)")
+        # Register dark theme styles first
+        style = ttk.Style()
         
-        info_frame = ttk.LabelFrame(frame, text="Instructions", padding="10")
-        info_frame.pack(fill='x', pady=10)
+        # Configure styles with correct ttk naming conventions
+        style.configure("Dark.TFrame", background="#2d2d2d")
+        style.configure("Dark.TLabelframe", background="#2d2d2d", foreground="white")
+        style.configure("Dark.TLabelframe.Label", background="#2d2d2d", foreground="white")
+        style.configure("Dark.TLabel", background="#2d2d2d", foreground="white")
+        style.configure("Dark.TEntry", fieldbackground="#3c3c3c", foreground="white", 
+                    background="#3c3c3c", insertcolor="white")
+        style.configure("Dark.TCombobox", fieldbackground="#3c3c3c", foreground="white",
+                    background="#3c3c3c", selectbackground="#505050")
+        style.map("Dark.TCombobox",
+                fieldbackground=[('readonly', '#3c3c3c')],
+                selectbackground=[('readonly', '#505050')])
+        
+        # Configure button style for green buttons
+        style.configure("Green.TButton", 
+                    background="#4caf50", 
+                    foreground="white",
+                    font=("Segoe UI", 9, "bold"),
+                    padding=(12, 6), 
+                    borderwidth=0, 
+                    focusthickness=0)
+        style.map("Green.TButton",
+                background=[('active', '#45a049'), ('pressed', '#3d8b40')],
+                foreground=[('active', 'white'), ('pressed', 'white')])
+        
+        frame = ttk.Frame(self.notebook, padding="10", style="Dark.TFrame")
+        self.notebook.add(frame, text="Ω Lab 4: Z-Transform")
+
+        # Instructions frame
+        info_frame = ttk.LabelFrame(frame, text="Instructions", padding="10", style="Dark.TLabelframe")
+        info_frame.pack(fill='x', pady=(0, 10))
+        
         info_text = """Enter the sequence values as space-separated numbers and specify the starting index n.
 Example 1: Sequence = "5 3 -3 0 4 -2", n = -2  (x(-2)=5, x(-1)=3, x(0)=-3, x(1)=0, x(2)=4, x(3)=-2)
 Example 2: Sequence = "1 2 0 3 4 5", n = 0     (x(0)=1, x(1)=2, x(2)=0, x(3)=3, x(4)=4, x(5)=5)
 
 The Z-transform formula: X(z) = Σ x(n)·z^(-n)
 For DISCRETE TIME signals where n represents the sample number."""
-        ttk.Label(info_frame, text=info_text, justify='left').pack(fill='x')
         
-        input_frame = ttk.LabelFrame(frame, text="Z-Transform Calculator", padding="10")
-        input_frame.pack(fill='x', pady=10)
+        info_label = ttk.Label(info_frame, text=info_text, justify='left', style="Dark.TLabel")
+        info_label.pack(fill='x')
+
+        # Input frame
+        input_frame = ttk.LabelFrame(frame, text="Z-Transform Calculator", padding="10", style="Dark.TLabelframe")
+        input_frame.pack(fill='x', pady=(0, 10))
+
+        # Row 1: Sequence input
+        row1 = ttk.Frame(input_frame, style="Dark.TFrame")
+        row1.pack(fill='x', pady=5)
         
-        ttk.Label(input_frame, text="Sequence (space-separated):").pack(side='left', padx=5)
-        self.z_input = ttk.Entry(input_frame, width=30)
-        self.z_input.pack(side='left', padx=5)
-        ttk.Label(input_frame, text="Starting Index n:").pack(side='left', padx=5)
-        self.z_start_index = ttk.Entry(input_frame, width=8)
+        ttk.Label(row1, text="Sequence (space-separated):", style="Dark.TLabel").pack(side='left', padx=(0, 8))
+        self.z_input = ttk.Entry(row1, width=40, style="Dark.TEntry")
+        self.z_input.pack(side='left', padx=(0, 20))
+        
+        ttk.Label(row1, text="Starting Index n:", style="Dark.TLabel").pack(side='left', padx=(0, 8))
+        self.z_start_index = ttk.Entry(row1, width=8, style="Dark.TEntry")
         self.z_start_index.insert(0, "0")
-        self.z_start_index.pack(side='left', padx=5)
-        ttk.Button(input_frame, text="Calculate Z-Transform",
-                   command=self.calculate_z_transform).pack(side='left', padx=5)
-        tk.Button(input_frame, text="🗑️ Delete", command=self.delete_z_transform,
-                  fg="red", bg="#f0f0f0", relief='raised', cursor="hand2").pack(side='left', padx=5)
+        self.z_start_index.pack(side='left')
+
+        # Row 2: Buttons
+        row2 = ttk.Frame(input_frame, style="Dark.TFrame")
+        row2.pack(fill='x', pady=5)
         
-        output_frame = ttk.LabelFrame(frame, text="Result", padding="10")
-        output_frame.pack(fill='both', expand=True, pady=10)
-        self.z_output = tk.Text(output_frame, height=15, width=80, font=("Courier", 10))
+        # Green button for calculate
+        ttk.Button(row2, text="🔢 Calculate Z-Transform", style="Green.TButton",
+                   command=self.calculate_z_transform).pack(side='left', padx=8)
+        
+        # Red button for delete (using tk.Button for red color)
+        clear_btn = tk.Button(row2, text="🗑️ Clear", command=self.delete_z_transform,
+                            bg="#f44336", fg="white", font=("Segoe UI", 9, "bold"),
+                            relief='flat', cursor="hand2", padx=12,
+                            activebackground="#45a049", activeforeground="white")
+        clear_btn.pack(side='left', padx=8)
+
+        # Result frame
+        output_frame = ttk.LabelFrame(frame, text="Result", padding="10", style="Dark.TLabelframe")
+        output_frame.pack(fill='both', expand=True)
+        
+        # Text widget with dark theme
+        self.z_output = tk.Text(output_frame, height=15, width=80, font=("Courier", 10),
+                                bg="#3c3c3c", fg="#e0e0e0", insertbackground="white",
+                                relief='flat', borderwidth=0)
         self.z_output.pack(fill='both', expand=True)
-    
+        
+        # Add scrollbar for text widget
+        scrollbar = ttk.Scrollbar(self.z_output, orient="vertical", command=self.z_output.yview)
+        scrollbar.pack(side='right', fill='y')
+        self.z_output.configure(yscrollcommand=scrollbar.set)
+
     def delete_z_transform(self):
         self.z_input.delete(0, tk.END)
         self.z_start_index.delete(0, tk.END)
         self.z_start_index.insert(0, "0")
         self.z_output.delete(1.0, tk.END)
         messagebox.showinfo("Success", "Z-Transform data cleared!")
-    
+
     def calculate_z_transform(self):
         try:
             input_str = self.z_input.get().strip()
@@ -967,7 +1352,7 @@ For DISCRETE TIME signals where n represents the sample number."""
             self.z_output.insert(tk.END, f"X(z) = {result}\n")
         except ValueError:
             messagebox.showerror("Error", "Invalid input! Enter only numbers separated by spaces.")
-    
+
     def z_transform_detailed(self, sequence, n_start=0):
         terms = []
         equation_steps = []
@@ -1012,14 +1397,44 @@ For DISCRETE TIME signals where n represents the sample number."""
         result = " + ".join(terms).replace("+ -", "- ")
         detailed = "\n".join(equation_steps)
         return result, detailed
-    
+
     # ==================== TAB 4: INVERSE Z-TRANSFORM (FIXED) ====================
     def create_inverse_z_transform_tab(self):
-        frame = ttk.Frame(self.notebook, padding="10")
-        self.notebook.add(frame, text="Inverse Z-Transform (Lab 4B)")
+        # Register dark theme styles
+        style = ttk.Style()
         
-        info_frame = ttk.LabelFrame(frame, text="Instructions", padding="10")
-        info_frame.pack(fill='x', pady=10)
+        # Configure styles with correct ttk naming conventions
+        style.configure("Dark.TFrame", background="#2d2d2d")
+        style.configure("Dark.TLabelframe", background="#2d2d2d", foreground="white")
+        style.configure("Dark.TLabelframe.Label", background="#2d2d2d", foreground="white")
+        style.configure("Dark.TLabel", background="#2d2d2d", foreground="white")
+        style.configure("Dark.TEntry", fieldbackground="#3c3c3c", foreground="white", 
+                    background="#3c3c3c", insertcolor="white")
+        style.configure("Dark.TCombobox", fieldbackground="#3c3c3c", foreground="white",
+                    background="#3c3c3c", selectbackground="#505050")
+        style.map("Dark.TCombobox",
+                fieldbackground=[('readonly', '#3c3c3c')],
+                selectbackground=[('readonly', '#505050')])
+        
+        # Configure button style for green buttons
+        style.configure("Green.TButton", 
+                    background="#4caf50", 
+                    foreground="white",
+                    font=("Segoe UI", 9, "bold"),
+                    padding=(12, 6), 
+                    borderwidth=0, 
+                    focusthickness=0)
+        style.map("Green.TButton",
+                background=[('active', '#45a049'), ('pressed', '#3d8b40')],
+                foreground=[('active', 'white'), ('pressed', 'white')])
+        
+        frame = ttk.Frame(self.notebook, padding="10", style="Dark.TFrame")
+        self.notebook.add(frame, text="Ω Lab 4B: Inverse Z")
+
+        # ---- Instructions frame ----
+        info_frame = ttk.LabelFrame(frame, text="Instructions", padding="10", style="Dark.TLabelframe")
+        info_frame.pack(fill='x', pady=(0, 10))
+        
         info_text = """Enter the Z-transform expression to find the inverse (recover x[n]).
 IMPORTANT: Use the format: coefficient*z^power (with asterisk *)
 Examples:
@@ -1032,34 +1447,72 @@ Example: If starting n = -2, the first value maps to the HIGHEST power term.
 
 The Inverse Z-Transform recovers the discrete-time signal x[n] from X(z).
 Powers are sorted DESCENDING: highest z-power → n_start, next → n_start+1, etc."""
-        ttk.Label(info_frame, text=info_text, justify='left').pack(fill='x')
         
-        input_frame = ttk.LabelFrame(frame, text="Inverse Z-Transform Calculator", padding="10")
-        input_frame.pack(fill='x', pady=10)
-        ttk.Label(input_frame, text="X(z) =").pack(side='left', padx=5)
-        self.inverse_z_input = ttk.Entry(input_frame, width=60)
-        self.inverse_z_input.pack(side='left', padx=5)
-        ttk.Label(input_frame, text="Starting n:").pack(side='left', padx=5)
-        self.inverse_z_start = ttk.Entry(input_frame, width=8)
+        ttk.Label(info_frame, text=info_text, justify='left', style="Dark.TLabel", 
+                 wraplength=800).pack(fill='x')
+
+        # ---- Input frame ----
+        input_frame = ttk.LabelFrame(frame, text="Inverse Z-Transform Calculator", padding="10", style="Dark.TLabelframe")
+        input_frame.pack(fill='x', pady=(0, 10))
+        
+        # Row 1: X(z) input
+        row1 = ttk.Frame(input_frame, style="Dark.TFrame")
+        row1.pack(fill='x', pady=5)
+        ttk.Label(row1, text="X(z) =", style="Dark.TLabel", font=("Segoe UI", 10, "bold")).pack(side='left', padx=(0, 10))
+        self.inverse_z_input = ttk.Entry(row1, width=60, style="Dark.TEntry", font=("Courier", 10))
+        self.inverse_z_input.pack(side='left', padx=5, fill='x', expand=True)
+        
+        # Row 2: Starting n and buttons
+        row2 = ttk.Frame(input_frame, style="Dark.TFrame")
+        row2.pack(fill='x', pady=5)
+        
+        left_controls = ttk.Frame(row2, style="Dark.TFrame")
+        left_controls.pack(side='left')
+        
+        ttk.Label(left_controls, text="Starting n:", style="Dark.TLabel").pack(side='left', padx=(0, 5))
+        self.inverse_z_start = ttk.Entry(left_controls, width=8, style="Dark.TEntry")
         self.inverse_z_start.insert(0, "0")
-        self.inverse_z_start.pack(side='left', padx=5)
-        ttk.Button(input_frame, text="Calculate Inverse",
-                   command=self.calculate_inverse_z_transform).pack(side='left', padx=5)
-        tk.Button(input_frame, text="🗑️ Delete", command=self.delete_inverse_z_transform,
-                  fg="red", bg="#f0f0f0", relief='raised', cursor="hand2").pack(side='left', padx=5)
+        self.inverse_z_start.pack(side='left', padx=(0, 20))
         
-        output_frame = ttk.LabelFrame(frame, text="Result", padding="10")
-        output_frame.pack(fill='both', expand=True, pady=10)
-        self.inverse_z_output = tk.Text(output_frame, height=15, width=80, font=("Courier", 10))
+        # Green button for calculation
+        ttk.Button(row2, text="📊 Calculate Inverse", style="Green.TButton",
+                  command=self.calculate_inverse_z_transform).pack(side='left', padx=5)
+        
+        # Red clear button
+        clear_btn = tk.Button(row2, text="🗑️ Clear", command=self.delete_inverse_z_transform,
+                            bg="#f44336", fg="white", font=("Segoe UI", 9, "bold"),
+                            relief='flat', cursor="hand2", padx=12,
+                            activebackground="#45a049", activeforeground="white")
+        clear_btn.pack(side='left', padx=15)
+
+        # ---- Output frame ----
+        output_frame = ttk.LabelFrame(frame, text="Result", padding="10", style="Dark.TLabelframe")
+        output_frame.pack(fill='both', expand=True, pady=(0, 0))
+        
+        # Create text widget with dark theme colors
+        self.inverse_z_output = tk.Text(output_frame, height=15, width=80, font=("Courier", 10),
+                                        bg="#3c3c3c", fg="white", insertbackground="white",
+                                        relief='flat', borderwidth=0)
         self.inverse_z_output.pack(fill='both', expand=True)
-    
+        
+        # Add scrollbar
+        scrollbar = ttk.Scrollbar(output_frame, orient="vertical", command=self.inverse_z_output.yview)
+        scrollbar.pack(side='right', fill='y')
+        self.inverse_z_output.configure(yscrollcommand=scrollbar.set)
+        
+        # Configure text widget tags for colored output
+        self.inverse_z_output.tag_configure("success", foreground="#4caf50")
+        self.inverse_z_output.tag_configure("warning", foreground="#ff6b6b")
+        self.inverse_z_output.tag_configure("info", foreground="#64b5f6")
+        self.inverse_z_output.tag_configure("header", foreground="#ffffff", font=("Courier", 10, "bold"))
+
     def delete_inverse_z_transform(self):
         self.inverse_z_input.delete(0, tk.END)
         self.inverse_z_start.delete(0, tk.END)
         self.inverse_z_start.insert(0, "0")
         self.inverse_z_output.delete(1.0, tk.END)
         messagebox.showinfo("Success", "Inverse Z-Transform data cleared!")
-    
+
     def calculate_inverse_z_transform(self):
         try:
             input_str = self.inverse_z_input.get().strip()
@@ -1077,9 +1530,9 @@ Powers are sorted DESCENDING: highest z-power → n_start, next → n_start+1, e
             self.inverse_z_output.delete(1.0, tk.END)
 
             # ── Header ────────────────────────────────────────────────────
-            self.inverse_z_output.insert(tk.END, f"Input X(z): {input_str}\n")
-            self.inverse_z_output.insert(tk.END, f"Starting index n = {n_start}\n")
-            self.inverse_z_output.insert(tk.END, "=" * 55 + "\n\n")
+            self.inverse_z_output.insert(tk.END, f"Input X(z): {input_str}\n", "header")
+            self.inverse_z_output.insert(tk.END, f"Starting index n = {n_start}\n", "info")
+            self.inverse_z_output.insert(tk.END, "=" * 55 + "\n\n", "header")
 
             # ── Sort powers DESCENDING: highest power = n_start ───────────
             sorted_powers = sorted(coefficients.keys(), reverse=True)
@@ -1087,33 +1540,37 @@ Powers are sorted DESCENDING: highest z-power → n_start, next → n_start+1, e
 
             # ── Step-by-step solution ─────────────────────────────────────
             self.inverse_z_output.insert(tk.END,
-                "Principle: coefficient of z^k  ->  x[n] at that sample\n")
+                "Principle: coefficient of z^k  ->  x[n] at that sample\n", "info")
             self.inverse_z_output.insert(tk.END,
-                "Powers sorted highest→lowest map to n_start, n_start+1, ...\n")
-            self.inverse_z_output.insert(tk.END, "-" * 55 + "\n")
+                "Powers sorted highest→lowest map to n_start, n_start+1, ...\n", "info")
+            self.inverse_z_output.insert(tk.END, "-" * 55 + "\n", "header")
 
             for idx, power in enumerate(sorted_powers):
                 n = n_start + idx
                 coeff = coefficients[power]
                 # Format power label
                 p_label = f"z^{power}" if power >= 0 else f"z^({power})"
-                zero_note = "  <- zero term (kept in sequence)" if coeff == 0 else ""
-                self.inverse_z_output.insert(tk.END,
-                    f"  {p_label}  ->  n={n:3d}  :  x[{n}] = {coeff}{zero_note}\n")
+                
+                # Format the line with appropriate color
+                line = f"  {p_label:>8}  ->  n={n:3d}  :  x[{n}] = {coeff}"
+                if coeff == 0:
+                    self.inverse_z_output.insert(tk.END, line + "  <- zero term (kept in sequence)\n", "warning")
+                else:
+                    self.inverse_z_output.insert(tk.END, line + "\n", "success")
 
-            self.inverse_z_output.insert(tk.END, "-" * 55 + "\n\n")
+            self.inverse_z_output.insert(tk.END, "-" * 55 + "\n\n", "header")
 
             # ── Final answer ──────────────────────────────────────────────
-            self.inverse_z_output.insert(tk.END, "Sequence x[n]:\n")
+            self.inverse_z_output.insert(tk.END, "Sequence x[n]:\n", "header")
             self.inverse_z_output.insert(tk.END,
-                f"  {x_values}  (starting at n = {n_start})\n\n")
-            self.inverse_z_output.insert(tk.END, "Final Answer:\n")
+                f"  {x_values}  (starting at n = {n_start})\n\n", "info")
+            self.inverse_z_output.insert(tk.END, "Final Answer:\n", "header")
             self.inverse_z_output.insert(tk.END,
-                f"  x[n] = {{ {', '.join(map(str, x_values))} }}\n")
+                f"  x[n] = {{ {', '.join(map(str, x_values))} }}\n", "success")
 
         except ValueError as e:
             messagebox.showerror("Error", f"Invalid input. {str(e)}")
-    
+
     def parse_z_transform_fixed(self, expr):
         """
         Parse Z-transform expression with format: coeff*z^power
@@ -1121,11 +1578,6 @@ Powers are sorted DESCENDING: highest z-power → n_start, next → n_start+1, e
         Uses re.findall with a signed-token pattern so that every term —
         including zero coefficients and negative coefficients after a minus
         sign — is captured correctly without any string-splitting hacks.
-
-        Examples handled:
-            5*z^2 + 3*z^1 - 3*z^0 + 0*z^-1 + 4*z^-2
-            4*z^4 - 1*z^3 - 3*z^1 + 4*z^0 + 3*z^-1
-            1*z^0 + 2*z^-1 + 3*z^-2
         """
         coefficients = {}
         # Remove all whitespace for clean matching
@@ -1138,49 +1590,96 @@ Powers are sorted DESCENDING: highest z-power → n_start, next → n_start+1, e
             power = int(power_str)
             coefficients[power] = coeff
         return coefficients
-    
-    # ==================== TAB 5: FFT ANALYSIS ====================
-    
-    # ==================== TAB: LAB 5 - DFT & MOTOR ANALYSIS ====================
-    # ==================== TAB: LAB 5 - DFT & MOTOR ANALYSIS ====================
+
+    # ==================== TAB 5: LAB 5 - DFT & MOTOR ANALYSIS (DARK THEME) ====================
     def create_dft_lab5_tab(self):
-        frame = ttk.Frame(self.notebook, padding="10")
-        self.notebook.add(frame, text="Lab 5 - DFT Analysis")
+        # Register dark theme styles (same as Lab 1)
+        style = ttk.Style()
+        
+        # Configure styles with correct ttk naming conventions
+        style.configure("Dark.TFrame", background="#2d2d2d")
+        style.configure("Dark.TLabelframe", background="#2d2d2d", foreground="white")
+        style.configure("Dark.TLabelframe.Label", background="#2d2d2d", foreground="white")
+        style.configure("Dark.TLabel", background="#2d2d2d", foreground="white")
+        style.configure("Dark.TEntry", fieldbackground="#3c3c3c", foreground="white", 
+                    background="#3c3c3c", insertcolor="white")
+        style.configure("Dark.TCombobox", fieldbackground="#3c3c3c", foreground="white",
+                    background="#3c3c3c", selectbackground="#505050")
+        style.map("Dark.TCombobox",
+                fieldbackground=[('readonly', '#3c3c3c')],
+                selectbackground=[('readonly', '#505050')])
+        
+        # Configure button style for green buttons
+        style.configure("Green.TButton", 
+                    background="#4caf50", 
+                    foreground="white",
+                    font=("Segoe UI", 9, "bold"),
+                    padding=(12, 6), 
+                    borderwidth=0, 
+                    focusthickness=0)
+        style.map("Green.TButton",
+                background=[('active', '#45a049'), ('pressed', '#3d8b40')],
+                foreground=[('active', 'white'), ('pressed', 'white')])
+
+        frame = ttk.Frame(self.notebook, padding="10", style="Dark.TFrame")
+        self.notebook.add(frame, text="⚙️ Lab 5: DFT Analysis")
 
         # --- Manual DFT Calculation Section (Ref: Page 6-7 of PDF) ---
-        calc_frame = ttk.LabelFrame(frame, text="Manual DFT Calculator", padding="10")
-        calc_frame.pack(fill='x', pady=(0, 5))
+        calc_frame = ttk.LabelFrame(frame, text="Manual DFT Calculator", padding="10", style="Dark.TLabelframe")
+        calc_frame.pack(fill='x', pady=(0, 10))
 
-        row1 = ttk.Frame(calc_frame)
-        row1.pack(fill='x', pady=2)
-        ttk.Label(row1, text="Sequence x[n] (space separated):").pack(side='left', padx=5)
-        self.lab5_seq_input = ttk.Entry(row1, width=30)
+        row1 = ttk.Frame(calc_frame, style="Dark.TFrame")
+        row1.pack(fill='x', pady=5)
+        
+        ttk.Label(row1, text="Sequence x[n] (space separated):", style="Dark.TLabel").pack(side='left', padx=5)
+        self.lab5_seq_input = ttk.Entry(row1, width=30, style="Dark.TEntry")
         self.lab5_seq_input.insert(0, "1 1 0 0")
         self.lab5_seq_input.pack(side='left', padx=5)
-        
-        ttk.Button(row1, text="Calculate DFT", command=self.lab5_calculate_dft).pack(side='left', padx=5)
-        ttk.Button(row1, text="Show Twiddle Factors", command=self.lab5_show_twiddle).pack(side='left', padx=5)
+
+        ttk.Button(row1, text="Calculate DFT", style="Green.TButton", command=self.lab5_calculate_dft).pack(side='left', padx=5)
+        ttk.Button(row1, text="Show Twiddle Factors", style="Green.TButton", command=self.lab5_show_twiddle).pack(side='left', padx=5)
 
         # --- Motor Vibration Simulation Section (Ref: Page 3-4 of PDF) ---
-        motor_frame = ttk.LabelFrame(frame, text="Motor Vibration Case Study (Spectral Analysis)", padding="10")
-        motor_frame.pack(fill='x', pady=(0, 5))
+        motor_frame = ttk.LabelFrame(frame, text="Motor Vibration Case Study (Spectral Analysis)", padding="10", style="Dark.TLabelframe")
+        motor_frame.pack(fill='x', pady=(0, 10))
+
+        row2 = ttk.Frame(motor_frame, style="Dark.TFrame")
+        row2.pack(fill='x', pady=5)
         
-        ttk.Label(motor_frame, text="Select Condition:").pack(side='left', padx=5)
-        self.lab5_motor_cond = ttk.Combobox(motor_frame, values=["New Installation (Normal)", "Worn Drive Gear (Defective)"], state="readonly", width=30)
+        ttk.Label(row2, text="Select Condition:", style="Dark.TLabel").pack(side='left', padx=5)
+        self.lab5_motor_cond = ttk.Combobox(row2, values=["New Installation (Normal)", "Worn Drive Gear (Defective)"], 
+                                            state="readonly", width=30, style="Dark.TCombobox")
         self.lab5_motor_cond.current(0)
         self.lab5_motor_cond.pack(side='left', padx=5)
-        ttk.Button(motor_frame, text="Simulate Vibration Spectrum", command=self.lab5_simulate_motor).pack(side='left', padx=5)
+        ttk.Button(row2, text="Simulate Vibration Spectrum", style="Green.TButton", command=self.lab5_simulate_motor).pack(side='left', padx=5)
 
-        # --- Display Area ---
-        display_container = ttk.Frame(frame)
+        # --- Status / info label ---
+        self.lab5_desc = ttk.Label(frame, text="Enter a sequence above or simulate motor vibration.",
+                                anchor='w', foreground="#888888", style="Dark.TLabel")
+        self.lab5_desc.pack(fill='x', padx=5, pady=(0, 10))
+
+        # --- Display Area (Text + Matplotlib side by side) ---
+        display_container = ttk.Frame(frame, style="Dark.TFrame")
         display_container.pack(fill='both', expand=True)
 
-        self.lab5_txt = tk.Text(display_container, width=45, font=("Courier", 9), bg="#ffffff")
+        # Configure Text widget with dark theme
+        self.lab5_txt = tk.Text(display_container, width=45, font=("Courier", 9), 
+                            bg="#3c3c3c", fg="#e0e0e0", insertbackground="white",
+                            relief='flat', borderwidth=0)
         self.lab5_txt.pack(side='left', fill='both', expand=False, padx=(0,5))
 
-        self.lab5_fig = Figure(figsize=(7, 4), dpi=80)
+        # Add scrollbar for text widget
+        txt_scrollbar = ttk.Scrollbar(display_container, orient="vertical", command=self.lab5_txt.yview)
+        txt_scrollbar.pack(side='left', fill='y')
+        self.lab5_txt.config(yscrollcommand=txt_scrollbar.set)
+
+        # --- Matplotlib canvas with dark theme ---
+        self.lab5_fig = Figure(figsize=(7, 4), dpi=80, facecolor="#2d2d2d")
         self.lab5_canvas = FigureCanvasTkAgg(self.lab5_fig, master=display_container)
         self.lab5_canvas.get_tk_widget().pack(side='right', fill='both', expand=True)
+        
+        # Configure figure background
+        self.lab5_fig.patch.set_facecolor('#2d2d2d')
 
     def lab5_calculate_dft(self):
         try:
@@ -1189,7 +1688,7 @@ Powers are sorted DESCENDING: highest z-power → n_start, next → n_start+1, e
             N = len(x)
             self.lab5_txt.delete(1.0, tk.END)
             self.lab5_txt.insert(tk.END, f"--- MANUAL DFT (N={N}) ---\n")
-            
+
             X_results = []
             for k in range(N):
                 re, im = 0, 0
@@ -1201,9 +1700,9 @@ Powers are sorted DESCENDING: highest z-power → n_start, next → n_start+1, e
                     re += term_re
                     im += term_im
                     # Displaying steps like the PDF
-                    sign = "-" if term_im >= 0 else "+" # showing negative j for positive angle
+                    sign = "-" if term_im >= 0 else "+"  # showing negative j for positive angle
                     self.lab5_txt.insert(tk.END, f" n={n}: {x[n]} * (cos({angle:.2f}) - j sin({angle:.2f}))\n")
-                
+
                 X_results.append(complex(re, im))
                 self.lab5_txt.insert(tk.END, f" Result X[{k}] = {re:.2f} + ({im:.2f})j\n")
 
@@ -1213,29 +1712,41 @@ Powers are sorted DESCENDING: highest z-power → n_start, next → n_start+1, e
                 r = round(val.real, 2)
                 i = round(val.imag, 2)
                 # Clean formatting (e.g., 1.0 - 1.0j)
-                if i == 0: formatted_list.append(f"{r}")
-                elif i > 0: formatted_list.append(f"{r}+{i}j")
-                else: formatted_list.append(f"{r}{i}j")
+                if i == 0:
+                    formatted_list.append(f"{r}")
+                elif i > 0:
+                    formatted_list.append(f"{r}+{i}j")
+                else:
+                    formatted_list.append(f"{r}{i}j")
 
             final_res_str = ", ".join(formatted_list)
             self.lab5_txt.insert(tk.END, "\n" + "="*40 + "\n")
             self.lab5_txt.insert(tk.END, f"FINAL RESULT:\n")
             self.lab5_txt.insert(tk.END, f"X(k) = {{ {final_res_str} }}\n")
             self.lab5_txt.insert(tk.END, "="*40 + "\n")
+            
+            # Update status
+            self.lab5_desc.config(text=f"DFT calculated for N={N} samples. |X(k)| plot shown below.", foreground="#4caf50")
 
-            # Plot Magnitude
+            # Plot Magnitude with dark theme
             self.lab5_fig.clear()
+            self.lab5_fig.patch.set_facecolor('#2d2d2d')
             ax = self.lab5_fig.add_subplot(111)
-            ax.stem(range(N), [np.abs(val) for val in X_results], basefmt=" ")
-            ax.set_title("DFT Magnitude Spectrum |X[k]|")
-            ax.set_xlabel("Frequency Index (k)")
-            ax.set_ylabel("Amplitude")
+            ax.set_facecolor('#3c3c3c')
+            ax.stem(range(N), [np.abs(val) for val in X_results], linefmt='#4caf50', markerfmt='go', basefmt='#2d2d2d')
+            ax.set_title("DFT Magnitude Spectrum |X[k]|", color='white')
+            ax.set_xlabel("Frequency Index (k)", color='white')
+            ax.set_ylabel("Amplitude", color='white')
+            ax.tick_params(colors='white')
             ax.grid(True, alpha=0.3)
+            for spine in ax.spines.values():
+                spine.set_color('white')
             self.lab5_fig.tight_layout()
             self.lab5_canvas.draw()
-            
+
         except ValueError:
             messagebox.showerror("Error", "Invalid input sequence. Use numbers separated by spaces.")
+            self.lab5_desc.config(text="Error: Invalid input sequence.", foreground="#ff6b6b")
 
     def lab5_show_twiddle(self):
         try:
@@ -1246,107 +1757,391 @@ Powers are sorted DESCENDING: highest z-power → n_start, next → n_start+1, e
             for k in range(N):
                 val = np.exp(-2j * np.pi * k / N)
                 self.lab5_txt.insert(tk.END, f"W_{N}^{k} = {val.real:.3f} + ({val.imag:.3f})j\n")
+            self.lab5_desc.config(text=f"Twiddle factors displayed for N={N}.", foreground="#4caf50")
         except:
-            pass
+            self.lab5_desc.config(text="Error: Invalid sequence for twiddle factor calculation.", foreground="#ff6b6b")
 
     def lab5_simulate_motor(self):
         fs = 1000
         t = np.linspace(0, 1, fs)
         condition = self.lab5_motor_cond.get()
         sig_shaft = 1.0 * np.sin(2 * np.pi * 20 * t)
-        
+
         if "New" in condition:
             sig_gear = 0.2 * np.sin(2 * np.pi * 240 * t)
-            status_color = "blue"
+            status_color = "#4caf50"  # Green for normal
+            status_msg = "Normal operation: Low gear mesh vibration detected."
         else:
             sig_gear = 1.5 * np.sin(2 * np.pi * 240 * t)
-            status_color = "red"
-            
+            status_color = "#ff6b6b"  # Red for defective
+            status_msg = "⚠️ Defective condition: High gear mesh vibration detected!"
+
         noise = 0.3 * np.random.normal(size=fs)
         total_signal = sig_shaft + sig_gear + noise
         freqs = np.fft.rfftfreq(fs, 1/fs)
         mags = np.abs(np.fft.rfft(total_signal))
-        
+
         self.lab5_fig.clear()
+        self.lab5_fig.patch.set_facecolor('#2d2d2d')
         ax = self.lab5_fig.add_subplot(111)
-        ax.plot(freqs, mags, color=status_color)
+        ax.set_facecolor('#3c3c3c')
+        ax.plot(freqs, mags, color=status_color, linewidth=2)
         ax.set_xlim(0, 350)
-        ax.set_title(f"Motor Vibration Spectrum: {condition}")
-        ax.set_xlabel("Frequency (Hz)")
-        ax.set_ylabel("Spectral Amplitude")
-        ax.annotate('Motor Shaft (20Hz)', xy=(20, mags[20]), xytext=(40, max(mags)*0.9),
-                    arrowprops=dict(facecolor='black', arrowstyle='->'))
-        ax.annotate('Drive Gear (240Hz)', xy=(240, mags[240]), xytext=(250, mags[240]),
-                    arrowprops=dict(facecolor='black', arrowstyle='->'))
+        ax.set_title(f"Motor Vibration Spectrum: {condition}", color='white')
+        ax.set_xlabel("Frequency (Hz)", color='white')
+        ax.set_ylabel("Spectral Amplitude", color='white')
+        ax.tick_params(colors='white')
+        
+        # Find approximate indices for annotations
+        shaft_idx = np.argmin(np.abs(freqs - 20))
+        gear_idx = np.argmin(np.abs(freqs - 240))
+        
+        ax.annotate('Motor Shaft (20Hz)', xy=(20, mags[shaft_idx]), xytext=(40, max(mags)*0.8),
+                    arrowprops=dict(facecolor='white', arrowstyle='->', color='white'),
+                    color='white', fontsize=9)
+        ax.annotate('Drive Gear (240Hz)', xy=(240, mags[gear_idx]), xytext=(250, mags[gear_idx]),
+                    arrowprops=dict(facecolor='white', arrowstyle='->', color='white'),
+                    color='white', fontsize=9)
+        
         ax.grid(True, alpha=0.3)
+        for spine in ax.spines.values():
+            spine.set_color('white')
+        
         self.lab5_fig.tight_layout()
         self.lab5_canvas.draw()
-    
-    # ==================== TAB 6: WINDOWING ====================
+        
+        # Update status
+        self.lab5_desc.config(text=status_msg, foreground=status_color)
+
+    # ==================== TAB 6: FFT ALGORITHM VISUALIZER (LAB 6) ====================
+    def create_fft_tab(self):
+        # Register dark theme styles
+        style = ttk.Style()
+        
+        # Configure styles with correct ttk naming conventions
+        style.configure("Dark.TFrame", background="#2d2d2d")
+        style.configure("Dark.TLabelframe", background="#2d2d2d", foreground="white")
+        style.configure("Dark.TLabelframe.Label", background="#2d2d2d", foreground="white")
+        style.configure("Dark.TLabel", background="#2d2d2d", foreground="white")
+        style.configure("Dark.TEntry", fieldbackground="#3c3c3c", foreground="white", 
+                    background="#3c3c3c", insertcolor="white")
+        style.configure("Dark.TCombobox", fieldbackground="#3c3c3c", foreground="white",
+                    background="#3c3c3c", selectbackground="#505050")
+        style.map("Dark.TCombobox",
+                fieldbackground=[('readonly', '#3c3c3c')],
+                selectbackground=[('readonly', '#505050')])
+        
+        # Configure button style for green buttons
+        style.configure("Green.TButton", 
+                    background="#4caf50", 
+                    foreground="white",
+                    font=("Segoe UI", 9, "bold"),
+                    padding=(12, 6), 
+                    borderwidth=0, 
+                    focusthickness=0)
+        style.map("Green.TButton",
+                background=[('active', '#45a049'), ('pressed', '#3d8b40')],
+                foreground=[('active', 'white'), ('pressed', 'white')])
+        
+        frame = ttk.Frame(self.notebook, padding="10", style="Dark.TFrame")
+        self.notebook.add(frame, text="⚡ Lab 6: FFT vs DFT")
+
+        # ---- Configuration frame ----
+        config_frame = ttk.LabelFrame(frame, text="Algorithm Configuration", padding="10", style="Dark.TLabelframe")
+        config_frame.pack(fill='x', pady=(0, 10))
+
+        # Row 1: Signal size selection
+        row1 = ttk.Frame(config_frame, style="Dark.TFrame")
+        row1.pack(fill='x', pady=5)
+
+        ttk.Label(row1, text="Signal Size (N):", style="Dark.TLabel").pack(side='left', padx=(0, 8))
+        self.fft_n_size = ttk.Combobox(row1, values=["64", "128", "256", "512"], width=12, 
+                                    state='readonly', style="Dark.TCombobox")
+        self.fft_n_size.current(0)
+        self.fft_n_size.pack(side='left', padx=(0, 20))
+
+        # Row 2: Control buttons
+        row2 = ttk.Frame(config_frame, style="Dark.TFrame")
+        row2.pack(fill='x', pady=5)
+
+        ttk.Button(row2, text="🚀 Start Algorithm Race", style="Green.TButton",
+                command=self.start_fft_race).pack(side='left', padx=8)
+        
+        # Clear button with red styling
+        clear_btn = tk.Button(row2, text="🗑️ Clear", command=self.delete_fft,
+                            bg="#f44336", fg="white", font=("Segoe UI", 9, "bold"),
+                            relief='flat', cursor="hand2", padx=12,
+                            activebackground="#45a049", activeforeground="white")
+        clear_btn.pack(side='left', padx=15)
+
+        # ---- Algorithm Logic frame ----
+        logic_frame = ttk.LabelFrame(frame, text="Algorithm Comparison Logic", padding="10", style="Dark.TLabelframe")
+        logic_frame.pack(fill='x', pady=(0, 10))
+
+        # DFT explanation
+        self.lbl_logic_dft = ttk.Label(logic_frame, 
+                                    text="📊 DFT: Brute Force Loop\n   • Every sample × every frequency\n   • Complexity: O(N²)",
+                                    foreground="#ff6b6b", font=("Courier", 9), style="Dark.TLabel")
+        self.lbl_logic_dft.pack(anchor='w', pady=2)
+
+        # FFT explanation
+        self.lbl_logic_fft = ttk.Label(logic_frame,
+                                    text="⚡ FFT: Divide & Conquer (Butterfly)\n   • Splits signal into Even/Odd recursively\n   • Complexity: O(N log₂ N)",
+                                    foreground="#4caf50", font=("Courier", 9), style="Dark.TLabel")
+        self.lbl_logic_fft.pack(anchor='w', pady=2)
+
+        # Math operations stats
+        self.lbl_math_stats = ttk.Label(logic_frame, 
+                                    text="Math Operations: ---", 
+                                    font=("Segoe UI", 10, "bold"), 
+                                    foreground="#4caf50", style="Dark.TLabel")
+        self.lbl_math_stats.pack(pady=8)
+
+        # ---- Status label ----
+        self.fft_desc = ttk.Label(frame, text="Select signal size and click 'Start Algorithm Race' to compare DFT vs FFT",
+                                anchor='w', foreground="#888888", style="Dark.TLabel")
+        self.fft_desc.pack(fill='x', padx=5, pady=(0, 5))
+
+        # ---- Matplotlib canvas ----
+        self.fft_fig = Figure(figsize=(10, 5), dpi=80, facecolor="#2d2d2d")
+        self.fft_canvas = FigureCanvasTkAgg(self.fft_fig, master=frame)
+        self.fft_canvas.get_tk_widget().pack(fill='both', expand=True)
+        
+        # Configure figure background
+        self.fft_fig.patch.set_facecolor('#2d2d2d')
+        
+        self.is_racing = False
+
+    def delete_fft(self):
+        self.is_racing = False
+        self.fft_fig.clear()
+        self.fft_fig.patch.set_facecolor('#2d2d2d')
+        self.fft_canvas.draw()
+        self.fft_desc.config(text="Select signal size and click 'Start Algorithm Race' to compare DFT vs FFT", 
+                            foreground="#888888")
+        self.lbl_math_stats.config(text="Math Operations: ---", foreground="#4caf50")
+
+    def start_fft_race(self):
+        if self.is_racing: 
+            return
+        
+        self.is_racing = True
+        
+        N = int(self.fft_n_size.get())
+        fs = 1000
+        t = np.arange(N) / fs
+        # Signal based on PDF Motor Study: 20Hz and 240Hz
+        x = np.sin(2 * np.pi * 20 * t) + 0.5 * np.sin(2 * np.pi * 240 * t)
+
+        self.fft_fig.clear()
+        self.fft_fig.patch.set_facecolor('#2d2d2d')
+        
+        self.ax_dft = self.fft_fig.add_subplot(121)
+        self.ax_fft = self.fft_fig.add_subplot(122)
+        
+        # Set dark backgrounds for axes
+        self.ax_dft.set_facecolor('#3c3c3c')
+        self.ax_fft.set_facecolor('#3c3c3c')
+        
+        # Configure axis colors
+        for ax in [self.ax_dft, self.ax_fft]:
+            ax.tick_params(colors='white')
+            ax.xaxis.label.set_color('white')
+            ax.yaxis.label.set_color('white')
+            ax.title.set_color('white')
+            for spine in ax.spines.values():
+                spine.set_color('white')
+            ax.grid(True, alpha=0.3)
+
+        # 1. SHOW THE FFT LOGIC (Divide & Conquer)
+        t0 = time.perf_counter()
+        X_fft = np.fft.fft(x)
+        fft_time = (time.perf_counter() - t0) * 1000
+
+        # FFT Math: N * log2(N)
+        fft_ops = int(N * np.log2(N))
+        dft_ops = N * N
+
+        self.lbl_math_stats.config(text=f"For N = {N}:\nDFT needs {dft_ops} ops\nFFT only needs {fft_ops} ops!",
+                                foreground="#4caf50")
+
+        freqs = np.fft.fftfreq(N, 1/fs)
+        self.ax_fft.stem(freqs[:N//2], np.abs(X_fft[:N//2]), 
+                        linefmt='#4caf50', markerfmt='go', basefmt=' ')
+        self.ax_fft.set_title(f"FFT Algorithm\n{int(np.log2(N))} 'Butterfly' Stages")
+        self.ax_fft.set_xlabel("Frequency (Hz)")
+        self.ax_fft.set_ylabel("Magnitude")
+        
+        self.fft_canvas.draw()
+        
+        self.fft_desc.config(text=f"⚡ FFT completed in {fft_time:.2f}ms! Now computing DFT...", 
+                            foreground="#4caf50")
+
+        # 2. START THE SLOW DFT ANIMATION
+        self.dft_results = np.zeros(N, dtype=complex)
+        self.dft_start_clock = time.perf_counter()
+        self._animate_dft_logic(x, 0, N, fs)
+
+    def _animate_dft_logic(self, x, k, N, fs):
+        if not self.is_racing: 
+            return
+
+        if k >= N // 2:
+            total_time = (time.perf_counter() - self.dft_start_clock) * 1000
+            self.lbl_math_stats.config(text=f"✅ RACE FINISHED!\nDFT: {total_time:.1f}ms\nFFT: Instant!\nSpeedup: {N*np.log2(N)/N:.1f}x faster!",
+                                    foreground="#4caf50")
+            self.fft_desc.config(text=f"✅ Comparison complete! DFT: {total_time:.1f}ms vs FFT: instant — FFT is {N/np.log2(N):.1f}x faster!",
+                                foreground="#4caf50")
+            self.is_racing = False
+            return
+
+        # Manual Summation (The way shown on Page 5 of your PDF)
+        # We calculate EACH bin using a loop.
+        self.dft_results[k] = 0  # Reset bin
+        for n in range(N):
+            theta = 2 * np.pi * k * n / N
+            self.dft_results[k] += x[n] * (np.cos(theta) - 1j * np.sin(theta))
+
+        # Update Plot
+        self.ax_dft.clear()
+        self.ax_dft.set_facecolor('#3c3c3c')
+        self.ax_dft.set_title(f"Manual DFT Loop\nComputing Bin {k+1}/{N//2} with {N} multiplications")
+        self.ax_dft.set_xlabel("Frequency (Hz)")
+        self.ax_dft.set_ylabel("Magnitude")
+        self.ax_dft.tick_params(colors='white')
+        self.ax_dft.xaxis.label.set_color('white')
+        self.ax_dft.yaxis.label.set_color('white')
+        self.ax_dft.title.set_color('white')
+        for spine in self.ax_dft.spines.values():
+            spine.set_color('white')
+        self.ax_dft.grid(True, alpha=0.3)
+        
+        freqs = np.fft.fftfreq(N, 1/fs)
+        self.ax_dft.stem(freqs[:k+1], np.abs(self.dft_results[:k+1]), 
+                        linefmt='#ff6b6b', markerfmt='ro', basefmt=' ')
+        self.ax_dft.set_xlim(0, 500)
+        self.ax_dft.set_ylim(0, N/2 + 5)
+
+        self.fft_canvas.draw()
+
+        # Update progress status
+        progress = (k + 1) / (N // 2) * 100
+        self.fft_desc.config(text=f"📊 Computing DFT: {progress:.1f}% complete (Bin {k+1}/{N//2})...", 
+                            foreground="#ff6b6b")
+
+        # The delay represents the extra time the CPU takes for O(N^2)
+        self.root.after(15, lambda: self._animate_dft_logic(x, k + 1, N, fs))
+
+    # ==================== TAB 7: WINDOWING ====================
     def create_windowing_tab(self):
-        frame = ttk.Frame(self.notebook, padding="10")
-        self.notebook.add(frame, text="Windowing (Lab 7)")
+        # Register dark theme styles first
+        style = ttk.Style()
         
+        # Configure styles with correct ttk naming conventions
+        style.configure("Dark.TFrame", background="#2d2d2d")
+        style.configure("Dark.TLabelframe", background="#2d2d2d", foreground="white")
+        style.configure("Dark.TLabelframe.Label", background="#2d2d2d", foreground="white")
+        style.configure("Dark.TLabel", background="#2d2d2d", foreground="white")
+        style.configure("Dark.TEntry", fieldbackground="#3c3c3c", foreground="white", 
+                    background="#3c3c3c", insertcolor="white")
+        style.configure("Dark.TCombobox", fieldbackground="#3c3c3c", foreground="white",
+                    background="#3c3c3c", selectbackground="#505050")
+        style.map("Dark.TCombobox",
+                fieldbackground=[('readonly', '#3c3c3c')],
+                selectbackground=[('readonly', '#505050')])
+        
+        # Configure button style for green buttons
+        style.configure("Green.TButton", 
+                    background="#4caf50", 
+                    foreground="white",
+                    font=("Segoe UI", 9, "bold"),
+                    padding=(12, 6), 
+                    borderwidth=0, 
+                    focusthickness=0)
+        style.map("Green.TButton",
+                background=[('active', '#45a049'), ('pressed', '#3d8b40')],
+                foreground=[('active', 'white'), ('pressed', 'white')])
+        
+        frame = ttk.Frame(self.notebook, padding="10", style="Dark.TFrame")
+        self.notebook.add(frame, text="🪟 Lab 7: Windowing")
+
         # --- Top Container for Parameters ---
-        top_frame = ttk.LabelFrame(frame, text="Window Parameters", padding="10")
+        top_frame = ttk.LabelFrame(frame, text="Window Parameters", padding="10", style="Dark.TLabelframe")
         top_frame.pack(side='top', fill='x', pady=(0, 10))
-        
+
         # First row: Numerical Inputs (N, f1, f2, A2)
-        input_row = ttk.Frame(top_frame)
+        input_row = ttk.Frame(top_frame, style="Dark.TFrame")
         input_row.pack(side='top', fill='x', pady=2)
-        
-        ttk.Label(input_row, text="Signal Length (N):").pack(side='left', padx=(5, 2))
-        self.window_N = ttk.Entry(input_row, width=8)
+
+        ttk.Label(input_row, text="Signal Length (N):", style="Dark.TLabel").pack(side='left', padx=(5, 2))
+        self.window_N = ttk.Entry(input_row, width=8, style="Dark.TEntry")
         self.window_N.insert(0, "64")
         self.window_N.pack(side='left', padx=(0, 15))
-        
-        ttk.Label(input_row, text="Frequency 1 (f1):").pack(side='left', padx=(5, 2))
-        self.window_f1 = ttk.Entry(input_row, width=8)
+
+        ttk.Label(input_row, text="Frequency 1 (f1):", style="Dark.TLabel").pack(side='left', padx=(5, 2))
+        self.window_f1 = ttk.Entry(input_row, width=8, style="Dark.TEntry")
         self.window_f1.insert(0, "5")
         self.window_f1.pack(side='left', padx=(0, 15))
-        
-        ttk.Label(input_row, text="Frequency 2 (f2):").pack(side='left', padx=(5, 2))
-        self.window_f2 = ttk.Entry(input_row, width=8)
+
+        ttk.Label(input_row, text="Frequency 2 (f2):", style="Dark.TLabel").pack(side='left', padx=(5, 2))
+        self.window_f2 = ttk.Entry(input_row, width=8, style="Dark.TEntry")
         self.window_f2.insert(0, "15")
         self.window_f2.pack(side='left', padx=(0, 15))
-        
-        ttk.Label(input_row, text="Amplitude 2 (A2):").pack(side='left', padx=(5, 2))
-        self.window_A2 = ttk.Entry(input_row, width=8)
+
+        ttk.Label(input_row, text="Amplitude 2 (A2):", style="Dark.TLabel").pack(side='left', padx=(5, 2))
+        self.window_A2 = ttk.Entry(input_row, width=8, style="Dark.TEntry")
         self.window_A2.insert(0, "0.5")
         self.window_A2.pack(side='left', padx=(0, 15))
-        
+
         # Second row: Window Buttons and Delete
-        button_row = ttk.Frame(top_frame)
+        button_row = ttk.Frame(top_frame, style="Dark.TFrame")
         button_row.pack(side='top', fill='x', pady=5)
-        
-        ttk.Label(button_row, text="Select Window:").pack(side='left', padx=(5, 5))
-        ttk.Button(button_row, text="Rectangular", command=lambda: self.apply_window('Rectangular')).pack(side='left', padx=2)
-        ttk.Button(button_row, text="Blackman", command=lambda: self.apply_window('Blackman')).pack(side='left', padx=2)
-        ttk.Button(button_row, text="Hann", command=lambda: self.apply_window('Hann')).pack(side='left', padx=2)
-        ttk.Button(button_row, text="Hamming", command=lambda: self.apply_window('Hamming')).pack(side='left', padx=2)
-        
-        tk.Button(button_row, text="🗑️ Delete", command=self.delete_windowing,
-                  fg="red", bg="#f0f0f0", relief='raised', cursor="hand2").pack(side='right', padx=10)
-        
+
+        ttk.Label(button_row, text="Select Window:", style="Dark.TLabel").pack(side='left', padx=(5, 5))
+        ttk.Button(button_row, text="Rectangular", style="Green.TButton", 
+                command=lambda: self.apply_window('Rectangular')).pack(side='left', padx=2)
+        ttk.Button(button_row, text="Blackman", style="Green.TButton", 
+                command=lambda: self.apply_window('Blackman')).pack(side='left', padx=2)
+        ttk.Button(button_row, text="Hann", style="Green.TButton", 
+                command=lambda: self.apply_window('Hann')).pack(side='left', padx=2)
+        ttk.Button(button_row, text="Hamming", style="Green.TButton", 
+                command=lambda: self.apply_window('Hamming')).pack(side='left', padx=2)
+
+        # Clear button with red styling
+        clear_btn = tk.Button(button_row, text="🗑️ Reset", command=self.delete_windowing,
+                            bg="#f44336", fg="white", font=("Segoe UI", 9, "bold"),
+                            relief='flat', cursor="hand2", padx=12,
+                            activebackground="#45a049", activeforeground="white")
+        clear_btn.pack(side='right', padx=10)
+
+        # --- Status / info label ---
+        self.window_desc = ttk.Label(frame, text="Select a window type to analyze spectral leakage reduction.",
+                                    anchor='w', foreground="#888888", style="Dark.TLabel")
+        self.window_desc.pack(fill='x', padx=5, pady=(0, 5))
+
         # --- Bottom Container for Graphs ---
-        graph_container = ttk.Frame(frame)
+        graph_container = ttk.Frame(frame, style="Dark.TFrame")
         graph_container.pack(side='top', fill='both', expand=True)
-        
-        self.window_fig = Figure(figsize=(14, 5), dpi=80)
+
+        self.window_fig = Figure(figsize=(14, 5), dpi=80, facecolor="#2d2d2d")
         self.window_canvas = FigureCanvasTkAgg(self.window_fig, master=graph_container)
         self.window_canvas.get_tk_widget().pack(fill='both', expand=True)
-        
+
         # Draw initial plot
         self.apply_window('Rectangular')
-    
+
     def delete_windowing(self):
-        self.window_N.delete(0, tk.END); self.window_N.insert(0, "64")
-        self.window_f1.delete(0, tk.END); self.window_f1.insert(0, "5")
-        self.window_f2.delete(0, tk.END); self.window_f2.insert(0, "15")
-        self.window_A2.delete(0, tk.END); self.window_A2.insert(0, "0.5")
+        self.window_N.delete(0, tk.END)
+        self.window_N.insert(0, "64")
+        self.window_f1.delete(0, tk.END)
+        self.window_f1.insert(0, "5")
+        self.window_f2.delete(0, tk.END)
+        self.window_f2.insert(0, "15")
+        self.window_A2.delete(0, tk.END)
+        self.window_A2.insert(0, "0.5")
         self.apply_window('Rectangular')
-        messagebox.showinfo("Success", "Windowing parameters reset!")
-    
+        self.window_desc.config(text="Parameters reset to defaults.", foreground="#4caf50")
+
     def apply_window(self, window_name):
         try:
             N  = int(self.window_N.get())
@@ -1354,93 +2149,155 @@ Powers are sorted DESCENDING: highest z-power → n_start, next → n_start+1, e
             f2 = int(self.window_f2.get())
             A2 = float(self.window_A2.get())
         except ValueError:
-            messagebox.showerror("Error", "Please enter valid numbers for all parameters")
+            messagebox.showerror("Invalid Input", "Please enter valid numbers for all parameters")
             return
+        
         n = np.arange(N)
         x = np.sin(2 * np.pi * f1 * n / N) + A2 * np.sin(2 * np.pi * f2 * n / N)
+        
         windows = {
             "Rectangular": np.ones(N),
             "Blackman": np.blackman(N),
             "Hann": np.hanning(N),
             "Hamming": np.hamming(N)
         }
+        
         w = windows[window_name]
         xw = x * w
         X  = np.fft.fft(x)
         Xw = np.fft.fft(xw)
         freq = np.arange(N)
-        
+
         self.window_fig.clear()
+        self.window_fig.patch.set_facecolor('#2d2d2d')
+        
+        # Original Signal Plot
         ax1 = self.window_fig.add_subplot(131)
-        ax1.plot(n, x, 'b-', linewidth=2)
-        ax1.set_title("Original Signal"); ax1.set_xlabel("n"); ax1.set_ylabel("Amplitude")
+        ax1.set_facecolor('#3c3c3c')
+        ax1.plot(n, x, '#4caf50', linewidth=2)
+        ax1.set_title("Original Signal", color='white')
+        ax1.set_xlabel("n", color='white')
+        ax1.set_ylabel("Amplitude", color='white')
+        ax1.tick_params(colors='white')
         ax1.grid(True, alpha=0.3)
-        
+        for spine in ax1.spines.values():
+            spine.set_color('white')
+
+        # Window and Windowed Signal Plot
         ax2 = self.window_fig.add_subplot(132)
-        ax2.plot(n, w, 'r--', linewidth=2, label='Window')
-        ax2.plot(n, xw, 'g-', linewidth=2, label='Windowed Signal')
-        ax2.set_title(f"{window_name} Window (Time Domain)")
-        ax2.set_xlabel("n"); ax2.set_ylabel("Amplitude"); ax2.legend(); ax2.grid(True, alpha=0.3)
-        
+        ax2.set_facecolor('#3c3c3c')
+        ax2.plot(n, w, '#ff6b6b', '--', linewidth=2, label='Window')
+        ax2.plot(n, xw, '#4caf50', linewidth=2, label='Windowed Signal')
+        ax2.set_title(f"{window_name} Window (Time Domain)", color='white')
+        ax2.set_xlabel("n", color='white')
+        ax2.set_ylabel("Amplitude", color='white')
+        ax2.tick_params(colors='white')
+        ax2.legend(facecolor='#3c3c3c', edgecolor='white', labelcolor='white')
+        ax2.grid(True, alpha=0.3)
+        for spine in ax2.spines.values():
+            spine.set_color('white')
+
+        # FFT Comparison Plot
         ax3 = self.window_fig.add_subplot(133)
-        ax3.plot(freq, np.abs(X),  'b-', label="Original",  linewidth=2)
-        ax3.plot(freq, np.abs(Xw), 'r-', label="Windowed", linewidth=2)
-        ax3.set_title("FFT Comparison")
-        ax3.set_xlabel("Frequency Bin"); ax3.set_ylabel("Magnitude"); ax3.legend(); ax3.grid(True, alpha=0.3)
-        
+        ax3.set_facecolor('#3c3c3c')
+        ax3.plot(freq, np.abs(X),  '#4caf50', label="Original", linewidth=2)
+        ax3.plot(freq, np.abs(Xw), '#ff6b6b', label="Windowed", linewidth=2)
+        ax3.set_title("FFT Comparison", color='white')
+        ax3.set_xlabel("Frequency Bin", color='white')
+        ax3.set_ylabel("Magnitude", color='white')
+        ax3.tick_params(colors='white')
+        ax3.legend(facecolor='#3c3c3c', edgecolor='white', labelcolor='white')
+        ax3.grid(True, alpha=0.3)
+        for spine in ax3.spines.values():
+            spine.set_color('white')
+
         self.window_fig.suptitle(
             f"{window_name} Window Analysis (N={N}, f1={f1}, f2={f2}, A2={A2})",
-            fontsize=12, fontweight='bold')
+            fontsize=12, fontweight='bold', color='white')
         self.window_fig.tight_layout()
         self.window_canvas.draw()
-    
-  
-    # ==================== TAB: LAB 8 - FIR & IIR FILTERS ====================
-    # ==================== TAB: LAB 8 - FIR & IIR FILTERS (UPDATED) ====================
+        
+        # Update status label
+        self.window_desc.config(text=f"Applied {window_name} window - reduces spectral leakage", foreground="#4caf50")
+
+    # ==================== TAB 8: LAB 8 - FIR & IIR FILTERS (UPDATED) ====================
     def create_fir_iir_lab8_tab(self):
-        frame = ttk.Frame(self.notebook, padding="10")
-        self.notebook.add(frame, text="Lab 8 - FIR/IIR Comparison")
+        # Register dark theme styles first
+        style = ttk.Style()
+        
+        # Configure styles with correct ttk naming conventions
+        style.configure("Dark.TFrame", background="#2d2d2d")
+        style.configure("Dark.TLabelframe", background="#2d2d2d", foreground="white")
+        style.configure("Dark.TLabelframe.Label", background="#2d2d2d", foreground="white")
+        style.configure("Dark.TLabel", background="#2d2d2d", foreground="white")
+        style.configure("Dark.TEntry", fieldbackground="#3c3c3c", foreground="white", 
+                    background="#3c3c3c", insertcolor="white")
+        style.configure("Dark.TCombobox", fieldbackground="#3c3c3c", foreground="white",
+                    background="#3c3c3c", selectbackground="#505050")
+        style.map("Dark.TCombobox",
+                fieldbackground=[('readonly', '#3c3c3c')],
+                selectbackground=[('readonly', '#505050')])
+        
+        # Configure button style for green buttons
+        style.configure("Green.TButton", 
+                    background="#4caf50", 
+                    foreground="white",
+                    font=("Segoe UI", 9, "bold"),
+                    padding=(12, 6), 
+                    borderwidth=0, 
+                    focusthickness=0)
+        style.map("Green.TButton",
+                background=[('active', '#45a049'), ('pressed', '#3d8b40')],
+                foreground=[('active', 'white'), ('pressed', 'white')])
+        
+        frame = ttk.Frame(self.notebook, padding="10", style="Dark.TFrame")
+        self.notebook.add(frame, text="⚖️ Lab 8: FIR vs IIR")
 
         # --- Controls Section ---
-        ctrl_frame = ttk.LabelFrame(frame, text="Filter Design Parameters", padding="10")
+        ctrl_frame = ttk.LabelFrame(frame, text="Filter Design Parameters", padding="10", style="Dark.TLabelframe")
         ctrl_frame.pack(fill='x', pady=(0, 5))
 
-        row1 = ttk.Frame(ctrl_frame)
+        row1 = ttk.Frame(ctrl_frame, style="Dark.TFrame")
         row1.pack(fill='x', pady=2)
-        
-        ttk.Label(row1, text="Filter Type:").pack(side='left', padx=5)
-        self.lab8_type = ttk.Combobox(row1, values=["Lowpass", "Highpass", "Bandpass", "Bandstop"], state="readonly", width=12)
+
+        ttk.Label(row1, text="Filter Type:", style="Dark.TLabel").pack(side='left', padx=5)
+        self.lab8_type = ttk.Combobox(row1, values=["Lowpass", "Highpass", "Bandpass", "Bandstop"], 
+                                     state="readonly", width=12, style="Dark.TCombobox")
         self.lab8_type.current(0)
         self.lab8_type.pack(side='left', padx=5)
 
-        ttk.Label(row1, text="Order (N):").pack(side='left', padx=5)
-        self.lab8_order = ttk.Spinbox(row1, from_=1, to=100, width=5)
+        ttk.Label(row1, text="Order (N):", style="Dark.TLabel").pack(side='left', padx=5)
+        self.lab8_order = ttk.Spinbox(row1, from_=1, to=100, width=5, style="Dark.TEntry")
         self.lab8_order.set(10)
         self.lab8_order.pack(side='left', padx=5)
 
         # Dual Cutoff Inputs
-        ttk.Label(row1, text="Low Cut (Hz):").pack(side='left', padx=5)
-        self.lab8_cutoff_low = ttk.Entry(row1, width=8)
+        ttk.Label(row1, text="Low Cut (Hz):", style="Dark.TLabel").pack(side='left', padx=5)
+        self.lab8_cutoff_low = ttk.Entry(row1, width=8, style="Dark.TEntry")
         self.lab8_cutoff_low.insert(0, "500")
         self.lab8_cutoff_low.pack(side='left', padx=5)
 
-        ttk.Label(row1, text="High Cut (Hz):").pack(side='left', padx=5)
-        self.lab8_cutoff_high = ttk.Entry(row1, width=8)
+        ttk.Label(row1, text="High Cut (Hz):", style="Dark.TLabel").pack(side='left', padx=5)
+        self.lab8_cutoff_high = ttk.Entry(row1, width=8, style="Dark.TEntry")
         self.lab8_cutoff_high.insert(0, "1500")
         self.lab8_cutoff_high.pack(side='left', padx=5)
 
-        ttk.Button(row1, text="Compare FIR vs IIR", command=self.lab8_compare_filters).pack(side='left', padx=20)
+        # Compare button with green styling
+        ttk.Button(row1, text="Compare FIR vs IIR", style="Green.TButton", 
+                  command=self.lab8_compare_filters).pack(side='left', padx=20)
 
         # --- Information & Comparison Table ---
-        info_frame = ttk.Frame(frame)
+        info_frame = ttk.Frame(frame, style="Dark.TFrame")
         info_frame.pack(fill='both', expand=True)
 
-        self.lab8_fig = Figure(figsize=(7, 4), dpi=90)
+        # Matplotlib canvas with dark theme
+        self.lab8_fig = Figure(figsize=(7, 4), dpi=90, facecolor="#2d2d2d")
         self.lab8_canvas = FigureCanvasTkAgg(self.lab8_fig, master=info_frame)
         self.lab8_canvas.get_tk_widget().pack(side='left', fill='both', expand=True)
 
         # Right side: Comparison Table (Ref: Page 13)
-        table_frame = ttk.LabelFrame(info_frame, text="FIR vs IIR Traits (Ref: Page 13)", padding="10")
+        table_frame = ttk.LabelFrame(info_frame, text="FIR vs IIR Traits (Ref: Page 13)", 
+                                    padding="10", style="Dark.TLabelframe")
         table_frame.pack(side='right', fill='y', padx=10)
 
         traits = [
@@ -1451,27 +2308,33 @@ Powers are sorted DESCENDING: highest z-power → n_start, next → n_start+1, e
             ("Roll-off", "Gradual", "Sharper")
         ]
 
-        ttk.Label(table_frame, text="Feature", font=('Helvetica', 9, 'bold')).grid(row=0, column=0, sticky='w', padx=5)
-        ttk.Label(table_frame, text="FIR", font=('Helvetica', 9, 'bold'), foreground="blue").grid(row=0, column=1, sticky='w', padx=5)
-        ttk.Label(table_frame, text="IIR", font=('Helvetica', 9, 'bold'), foreground="red").grid(row=0, column=2, sticky='w', padx=5)
+        # Header with custom styling
+        ttk.Label(table_frame, text="Feature", font=('Segoe UI', 9, 'bold'), 
+                 style="Dark.TLabel").grid(row=0, column=0, sticky='w', padx=5)
+        ttk.Label(table_frame, text="FIR", font=('Segoe UI', 9, 'bold'), 
+                 foreground="#4caf50", style="Dark.TLabel").grid(row=0, column=1, sticky='w', padx=5)
+        ttk.Label(table_frame, text="IIR", font=('Segoe UI', 9, 'bold'), 
+                 foreground="#ff6b6b", style="Dark.TLabel").grid(row=0, column=2, sticky='w', padx=5)
 
         for i, (feat, fir, iir) in enumerate(traits):
-            ttk.Label(table_frame, text=feat).grid(row=i+1, column=0, sticky='w', padx=5, pady=2)
-            ttk.Label(table_frame, text=fir, foreground="gray").grid(row=i+1, column=1, sticky='w', padx=5)
-            ttk.Label(table_frame, text=iir, foreground="gray").grid(row=i+1, column=2, sticky='w', padx=5)
+            ttk.Label(table_frame, text=feat, style="Dark.TLabel").grid(row=i+1, column=0, sticky='w', padx=5, pady=2)
+            ttk.Label(table_frame, text=fir, foreground="#888888", style="Dark.TLabel").grid(row=i+1, column=1, sticky='w', padx=5)
+            ttk.Label(table_frame, text=iir, foreground="#888888", style="Dark.TLabel").grid(row=i+1, column=2, sticky='w', padx=5)
 
-        self.lab8_eqn = ttk.Label(table_frame, text="\nFIR: y[n] = Σ a(k)x[n-k]\nIIR: y[n] = Σ a(k)x[n-k] + Σ b(j)y[n-j]", 
-                                  justify='left', font=("Courier", 8))
+        self.lab8_eqn = ttk.Label(table_frame, 
+                                 text="\nFIR: y[n] = Σ a(k)x[n-k]\nIIR: y[n] = Σ a(k)x[n-k] + Σ b(j)y[n-j]",
+                                 justify='left', font=("Courier New", 8), 
+                                 foreground="#888888", style="Dark.TLabel")
         self.lab8_eqn.grid(row=len(traits)+1, column=0, columnspan=3, pady=10)
 
     def lab8_compare_filters(self):
         try:
-            from scipy.signal import freqz, firwin
+            from scipy.signal import freqz, firwin, butter
             fs = 8000
             nyq = fs / 2
             order = int(self.lab8_order.get())
             f_type = self.lab8_type.get()
-            
+
             low = float(self.lab8_cutoff_low.get())
             high = float(self.lab8_cutoff_high.get())
 
@@ -1501,34 +2364,54 @@ Powers are sorted DESCENDING: highest z-power → n_start, next → n_start+1, e
             w_iir, h_iir = freqz(b_iir, a_iir, worN=2000)
             w_fir, h_fir = freqz(b_fir, [1], worN=2000)
 
-            # Plotting
+            # Plotting with dark theme
             self.lab8_fig.clear()
+            self.lab8_fig.patch.set_facecolor('#2d2d2d')
             ax = self.lab8_fig.add_subplot(111)
-            ax.plot(w_iir * nyq / np.pi, 20 * np.log10(np.abs(h_iir)), 'r-', label=f'IIR (Order {order})')
-            ax.plot(w_fir * nyq / np.pi, 20 * np.log10(np.abs(h_fir)), 'b--', label=f'FIR (Order {order})')
+            ax.set_facecolor('#3c3c3c')
             
-            ax.axvline(low, color='green', linestyle=':', label='Low Cutoff')
+            # Plot responses with consistent colors (green for FIR, red for IIR to match table)
+            ax.plot(w_iir * nyq / np.pi, 20 * np.log10(np.abs(h_iir) + 1e-10), 
+                   '#ff6b6b', linewidth=2, label=f'IIR (Order {order})')
+            ax.plot(w_fir * nyq / np.pi, 20 * np.log10(np.abs(h_fir) + 1e-10), 
+                   '#4caf50', '--', linewidth=2, label=f'FIR (Order {order})')
+
+            # Cutoff lines with contrasting colors
+            ax.axvline(low, color='#ffa500', linestyle=':', linewidth=2, label='Low Cutoff')
             if f_type in ["Bandpass", "Bandstop"]:
-                ax.axvline(high, color='orange', linestyle=':', label='High Cutoff')
-            
-            ax.set_title(f"Comparison: {f_type}")
-            ax.set_ylabel("Magnitude (dB)")
-            ax.set_xlabel("Frequency (Hz)")
+                ax.axvline(high, color='#ffa500', linestyle=':', linewidth=2, label='High Cutoff')
+
+            # Set title and labels with white text
+            ax.set_title(f"Frequency Response Comparison: {f_type} Filter", color='white', fontsize=11)
+            ax.set_ylabel("Magnitude (dB)", color='white')
+            ax.set_xlabel("Frequency (Hz)", color='white')
             ax.set_ylim(-80, 5)
             ax.grid(True, alpha=0.3)
-            ax.legend(loc='lower left')
             
+            # Customize legend
+            legend = ax.legend(loc='lower left', facecolor='#3c3c3c', edgecolor='white')
+            for text in legend.get_texts():
+                text.set_color('white')
+            
+            # Customize tick colors
+            ax.tick_params(colors='white')
+            
+            # Customize spines
+            for spine in ax.spines.values():
+                spine.set_color('white')
+
             self.lab8_fig.tight_layout()
             self.lab8_canvas.draw()
 
         except Exception as e:
-            messagebox.showerror("Error", str(e))
+            messagebox.showerror("Error", f"Failed to design filters:\n{str(e)}")
 
 
 def main():
     root = tk.Tk()
     app = DSPMasterProgram(root)
     root.mainloop()
+
 
 if __name__ == "__main__":
     main()
